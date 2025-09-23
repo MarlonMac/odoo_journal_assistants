@@ -83,5 +83,5 @@
     <menuitem id="menu_expense_assistant_root" name="Asistentes de Diario" sequence="15"/>
     <menuitem id="menu_expense_assistant" name="Gastos Corporativos" parent="menu_expense_assistant_root" action="action_expense_assistant" sequence="10"/>
     <menuitem id="menu_expense_assistant_config" name="Configuración" parent="menu_expense_assistant_root" sequence="100"/>
-    <menuitem id="menu_expense_category" name="Categorías de Gastos" parent="menu_expense_assistant_config" action="expense_assistant.action_expense_category" sequence="10"/>
+    <menuitem id="menu_expense_category" name="Categorías de Gastos" parent="menu_expense_assistant_config" action="action_expense_category" sequence="10"/>
 </odoo>

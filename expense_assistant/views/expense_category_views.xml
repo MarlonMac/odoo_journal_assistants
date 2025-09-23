@@ -32,14 +32,4 @@
         <field name="view_mode">tree,form</field>
     </record>
 
-    <menuitem id="menu_corporate_expense_config"
-              name="Configuración"
-              parent="menu_corporate_expense_root"
-              sequence="100"/>
-
-    <menuitem id="menu_expense_category"
-              name="Categorías de Gastos"
-              parent="menu_corporate_expense_config"
-              action="action_expense_category"
-              sequence="10"/>
 </odoo>
