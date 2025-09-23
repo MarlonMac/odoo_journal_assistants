@@ -15,10 +15,10 @@
         'hr'
     ],
     'data': [
-        'security/ir.model.access.csv',
-        'data/sequence_data.xml',
         'views/expense_category_views.xml',
         'views/expense_assistant_views.xml',
+        'security/ir.model.access.csv',
+        'data/sequence_data.xml',
     ],
     'installable': True,
     'application': True,
