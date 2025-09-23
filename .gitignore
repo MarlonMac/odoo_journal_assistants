@@ -1,0 +1,69 @@
+# ############### #
+# Odoo General    #
+# ############### #
+
+# Archivos de Python compilados
+__pycache__/
+*.py[cod]
+
+# Archivos de configuración de Odoo
+*.conf
+*.cfg
+*.openerp_serverrc
+
+# Archivos de sesión de Odoo
+sessions/*
+
+# Archivos de log de Odoo
+*.log
+
+# Archivos de base de datos SQLite (para pruebas locales)
+*.db
+*.sqlite3
+
+# Dependencias de Python
+venv/
+env/
+.venv/
+.env/
+pip-selfcheck.json
+*.egg-info/
+dist/
+build/
+
+# ################ #
+# Windows          #
+# ################ #
+
+# Archivos de caché del sistema operativo
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Archivos de caché de reciclaje
+$RECYCLE.BIN/
+
+# ################ #
+# VS Code          #
+# ################ #
+
+# Directorio de configuraciones locales del editor
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# Archivos de historial local
+.history/
+
+# Archivos de sesión
+*.code-workspace
+
+# ####################### #
+# Archivos específicos    #
+# ####################### #
+
+# No subir credenciales o archivos de entorno con datos sensibles
+.env
+credentials.json
