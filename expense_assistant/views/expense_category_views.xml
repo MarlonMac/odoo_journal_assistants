@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_expense_category_tree" model="ir.ui.view">
+        <field name="name">expense.category.tree</field>
+        <field name="model">expense.category</field>
+        <field name="arch" type="xml">
+            <tree string="Categorías de Gastos">
+                <field name="name"/>
+                <field name="expense_account_id"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_expense_category_form" model="ir.ui.view">
+        <field name="name">expense.category.form</field>
+        <field name="model">expense.category</field>
+        <field name="arch" type="xml">
+            <form string="Categoría de Gasto">
+                <sheet>
+                    <group>
+                        <field name="name"/>
+                        <field name="expense_account_id"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_expense_category" model="ir.actions.act_window">
+        <field name="name">Categorías de Gastos</field>
+        <field name="res_model">expense.category</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <menuitem id="menu_corporate_expense_config"
+              name="Configuración"
+              parent="menu_corporate_expense_root"
+              sequence="100"/>
+
+    <menuitem id="menu_expense_category"
+              name="Categorías de Gastos"
+              parent="menu_corporate_expense_config"
+              action="action_expense_category"
+              sequence="10"/>
+</odoo>
