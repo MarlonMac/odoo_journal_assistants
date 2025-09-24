@@ -12,6 +12,7 @@
     'category': 'Accounting/Accounting',
     'depends': ['account', 'mail'],
     'data': [
+        'security/security.xml',        
         'security/ir.model.access.csv',
         'data/sequence_data.xml',
     ],

@@ -11,15 +11,20 @@ class AssistantJournalEntryBase(models.AbstractModel):
     _order = 'date desc, id desc'
     _inherit = ['mail.thread', 'mail.activity.mixin']
 
-    # --- CAMPOS COMUNES ---
-    name = fields.Char(string='Referencia', required=True, copy=False, readonly=True, default=lambda self: _('Nuevo'))
-    description = fields.Char(string='Descripción', required=True, states={'posted': [('readonly', True)], 'cancelled': [('readonly', True)]}, tracking=True)
-    date = fields.Date(string='Fecha Contable', required=True, default=fields.Date.context_today, states={'posted': [('readonly', True)], 'cancelled': [('readonly', True)]}, tracking=True)
+    # === INICIO CAMBIO APROBACIÓN ===
     state = fields.Selection([
         ('draft', 'Borrador'),
+        ('to_approve', 'Para Aprobar'),
+        ('approved', 'Aprobado'),
         ('posted', 'Registrado'),
         ('cancelled', 'Cancelado'),
     ], string='Estado', default='draft', copy=False, tracking=True)
+    # === FIN CAMBIO APROBACIÓN ===
+
+    # ... (campos name, description, date, move_id, company_id sin cambios) ...
+    name = fields.Char(string='Referencia', required=True, copy=False, readonly=True, default=lambda self: _('Nuevo'))
+    description = fields.Char(string='Descripción', required=True, states={'posted': [('readonly', True)], 'cancelled': [('readonly', True)]}, tracking=True)
+    date = fields.Date(string='Fecha Contable', required=True, default=fields.Date.context_today, states={'posted': [('readonly', True)], 'cancelled': [('readonly', True)]}, tracking=True)
     move_id = fields.Many2one('account.move', string='Asiento Contable', readonly=True, copy=False)
     company_id = fields.Many2one('res.company', string='Compañía', required=True, default=lambda self: self.env.company)
 
@@ -33,21 +38,32 @@ class AssistantJournalEntryBase(models.AbstractModel):
         return super(AssistantJournalEntryBase, self).create(vals)
 
     # --- LÓGICA DE BOTONES (ACCIONES) ---
+    
+    # === INICIO CAMBIO APROBACIÓN ===
+    def action_submit_for_approval(self):
+        self.write({'state': 'to_approve'})
+
+    def action_approve(self):
+        self.write({'state': 'approved'})
+
+    def action_reject(self):
+        # Podríamos añadir un wizard para pedir el motivo del rechazo en el futuro
+        self.write({'state': 'draft'})
+    # === FIN CAMBIO APROBACIÓN ===
+
     def action_post(self):
         self.ensure_one()
-        if self.state != 'draft':
-            raise UserError(_('Solo se pueden registrar documentos en estado borrador.'))
+        # === INICIO CAMBIO APROBACIÓN: Ahora solo se postea desde Aprobado ===
+        if self.state != 'approved':
+            raise UserError(_('Solo se pueden registrar documentos en estado Aprobado.'))
+        # === FIN CAMBIO APROBACIÓN ===
 
-        # Llamada al método que deben implementar los hijos
         move_vals = self._prepare_move_vals()
 
         move = self.env['account.move'].create(move_vals)
         move.action_post()
         
-        return self.write({
-            'state': 'posted',
-            'move_id': move.id,
-        })
+        return self.write({'state': 'posted', 'move_id': move.id})
 
     def action_cancel(self):
         for rec in self:

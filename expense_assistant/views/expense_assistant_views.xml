@@ -1,32 +1,30 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <record id="view_expense_assistant_tree" model="ir.ui.view">
-        <field name="name">expense.assistant.tree</field>
-        <field name="model">expense.assistant</field>
-        <field name="arch" type="xml">
-            <tree string="Gastos Corporativos">
-                <field name="name"/>
-                <field name="date"/>
-                <field name="description"/>
-                <field name="category_id"/>
-                <field name="partner_id"/>
-                <field name="amount" sum="Total"/>
-                <field name="state" widget="badge" decoration-success="state == 'posted'" decoration-info="state == 'draft'" decoration-danger="state == 'cancelled'"/>
-            </tree>
-        </field>
-    </record>
-
     <record id="view_expense_assistant_form" model="ir.ui.view">
         <field name="name">expense.assistant.form</field>
         <field name="model">expense.assistant</field>
         <field name="arch" type="xml">
             <form string="Asistente de Gasto">
                 <header>
-                    <button name="action_post" string="Registrar" type="object" class="oe_highlight" attrs="{'invisible': [('state', '!=', 'draft')]}"/>
+                    <button name="action_submit_for_approval" string="Enviar para Aprobación" type="object" class="oe_highlight" attrs="{'invisible': [('state', '!=', 'draft')]}"/>
+                    
+                    <button name="action_approve" string="Aprobar" type="object" class="oe_highlight" 
+                            attrs="{'invisible': [('state', '!=', 'to_approve')]}" 
+                            groups="journal_entry_assistant_base.group_journal_assistant_approver"/>
+                    
+                    <button name="action_reject" string="Rechazar" type="object" 
+                            attrs="{'invisible': [('state', '!=', 'to_approve')]}" 
+                            groups="journal_entry_assistant_base.group_journal_assistant_approver"/>
+
+                    <button name="action_post" string="Registrar Contablemente" type="object" class="oe_highlight" 
+                            attrs="{'invisible': [('state', '!=', 'approved')]}" 
+                            groups="journal_entry_assistant_base.group_journal_assistant_approver"/>
+                    
                     <button name="action_cancel" string="Cancelar/Revertir" type="object" confirm="¿Estás seguro? Se creará un asiento de reversión." attrs="{'invisible': [('state', '!=', 'posted')]}"/>
                     <button name="action_to_draft" string="Volver a Borrador" type="object" attrs="{'invisible': [('state', '!=', 'cancelled')]}"/>
-                    <field name="state" widget="statusbar" statusbar_visible="draft,posted"/>
-                </header>
+                    
+                    <field name="state" widget="statusbar" statusbar_visible="draft,to_approve,approved,posted"/>
+                    </header>
                 <sheet>
                     <div class="oe_title">
                         <h1><field name="name" readonly="1"/></h1>
@@ -73,6 +71,22 @@
         </field>
     </record>
     
+    <record id="view_expense_assistant_tree" model="ir.ui.view">
+        <field name="name">expense.assistant.tree</field>
+        <field name="model">expense.assistant</field>
+        <field name="arch" type="xml">
+            <tree string="Gastos Corporativos">
+                <field name="name"/>
+                <field name="date"/>
+                <field name="description"/>
+                <field name="category_id"/>
+                <field name="partner_id"/>
+                <field name="amount" sum="Total"/>
+                <field name="state" widget="badge" decoration-success="state == 'posted'" decoration-info="state == 'draft'"/>
+            </tree>
+        </field>
+    </record>
+    
     <record id="action_expense_assistant" model="ir.actions.act_window">
         <field name="name">Asistente de Gastos</field>
         <field name="res_model">expense.assistant</field>
@@ -83,5 +97,5 @@
     <menuitem id="menu_expense_assistant_root" name="Asistentes de Diario" sequence="15"/>
     <menuitem id="menu_expense_assistant" name="Gastos Corporativos" parent="menu_expense_assistant_root" action="action_expense_assistant" sequence="10"/>
     <menuitem id="menu_expense_assistant_config" name="Configuración" parent="menu_expense_assistant_root" sequence="100"/>
-    <menuitem id="menu_expense_category" name="Categorías de Gastos" parent="menu_expense_assistant_config" action="action_expense_category" sequence="10"/>
+    <menuitem id="menu_expense_category" name="Categorías de Gastos" parent="menu_expense_assistant_config" action="expense_assistant.action_expense_category" sequence="10"/>
 </odoo>
