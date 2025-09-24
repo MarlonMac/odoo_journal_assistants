@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_loan_loan_tree" model="ir.ui.view">
+        <field name="name">loan.loan.tree</field>
+        <field name="model">loan.loan</field>
+        <field name="arch" type="xml">
+            <tree string="Préstamos">
+                <field name="name"/>
+                <field name="partner_id"/>
+                <field name="principal_account_id"/>
+                <field name="interest_account_id"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_loan_loan_form" model="ir.ui.view">
+        <field name="name">loan.loan.form</field>
+        <field name="model">loan.loan</field>
+        <field name="arch" type="xml">
+            <form string="Préstamo">
+                <sheet>
+                    <group>
+                        <field name="name"/>
+                        <field name="partner_id"/>
+                        <field name="principal_account_id"/>
+                        <field name="interest_account_id"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_loan_loan" model="ir.actions.act_window">
+        <field name="name">Préstamos</field>
+        <field name="res_model">loan.loan</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <menuitem id="menu_loan_loan"
+              name="Préstamos"
+              parent="expense_assistant.menu_expense_assistant_config"
+              action="action_loan_loan"
+              sequence="30"/>
+</odoo>

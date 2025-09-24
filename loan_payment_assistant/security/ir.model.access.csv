@@ -1,0 +1,7 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+"access_loan_payment_assistant_billing","Permisos para Asistente de Préstamos (Facturación)",model_loan_payment_assistant,account.group_account_invoice,1,1,1,1
+"access_loan_payment_assistant_accountant","Permisos para Asistente de Préstamos (Contador)",model_loan_payment_assistant,account.group_account_user,1,1,1,1
+"access_loan_payment_assistant_admin","Permisos para Asistente de Préstamos (Admin)",model_loan_payment_assistant,base.group_system,1,1,1,1
+"access_loan_loan_billing","Permisos para Préstamos (Facturación)",model_loan_loan,account.group_account_invoice,1,1,1,1
+"access_loan_loan_accountant","Permisos para Préstamos (Contador)",model_loan_loan,account.group_account_user,1,1,1,1
+"access_loan_loan_admin","Permisos para Préstamos (Admin)",model_loan_loan,base.group_system,1,1,1,1
