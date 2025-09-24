@@ -8,6 +8,7 @@
         o el pago de dividendos, generando los asientos de diario correspondientes.
     """,
     'author': 'Marlon Macario',
+    'website': "https://github.com/sponsors/MarlonMac/",
     'category': 'Accounting/Accounting',
     'depends': [
         'journal_entry_assistant_base',

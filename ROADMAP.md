@@ -30,7 +30,7 @@ Este documento describe la hoja de ruta para el desarrollo de los módulos que c
 
 * **Flujo de Aprobación (en `base` v1.0.0):** ✅
   * **Objetivo:** Añadir una capa de aprobación opcional al módulo base para que cualquier asistente pueda tener un flujo de "borrador -> para aprobar -> registrado".
-* **`equity_movement_assistant` (v1.0.0):**
+* **`equity_movement_assistant` (v1.0.0):** ✅
   * **Objetivo:** Asistente para registrar movimientos de patrimonio como dividendos o aportes.
 
 ---

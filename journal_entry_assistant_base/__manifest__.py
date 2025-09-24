@@ -9,6 +9,7 @@
         de asistentes de asientos de diario. No tiene interfaz de usuario visible.
     """,
     'author': 'Marlon Macario',
+    'website': "https://github.com/sponsors/MarlonMac/",
     'category': 'Accounting/Accounting',
     'depends': ['account', 'mail'],
     'data': [

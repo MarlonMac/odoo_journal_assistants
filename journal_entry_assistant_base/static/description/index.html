@@ -1,0 +1,63 @@
+<div class="container-fluid" style="padding: 0; margin: 0;">
+    <div class="d-flex align-items-center" style="background-color: #714B67; color: #fff; padding: 20px; border-radius: 5px;">
+        <img src="/journal_entry_assistant_base/static/description/icon.png" alt="Icono del Módulo" style="height: 64px; width: 64px; margin-right: 15px;">
+        <div>
+            <h1 style="margin: 0; font-weight: 500;">Asistente de Asientos de Diario (Base)</h1>
+            <p style="margin: 0; font-size: 1.1em;">El núcleo para estandarizar la creación de asistentes contables.</p>
+        </div>
+    </div>
+
+    <div class="mt-4">
+        <h2>Propósito y Estandarización</h2>
+        <p>
+            El objetivo de este módulo es la <strong>reutilización de código</strong> y la <strong>estandarización</strong>. 
+            Proporciona un modelo abstracto (<code>assistant.journal.entry.base</code>) que cualquier otro módulo puede heredar para obtener funcionalidades comunes de forma instantánea.
+            No es una aplicación funcional por sí misma, sino una base de desarrollo.
+        </p>
+    </div>
+
+    <div class="mt-4">
+        <h3>Características Heredables</h3>
+        <ul class="list-unstyled">
+            <li class="d-flex align-items-start mb-2"><i class="fa fa-check-circle-o text-success mr-2" style="padding-top: 4px;"></i><span>Flujo de estados: Borrador, Registrado y Cancelado.</span></li>
+            <li class="d-flex align-items-start mb-2"><i class="fa fa-check-circle-o text-success mr-2" style="padding-top: 4px;"></i><span>Lógica para registrar, cancelar y revertir asientos contables (<code>account.move</code>).</span></li>
+            <li class="d-flex align-items-start mb-2"><i class="fa fa-check-circle-o text-success mr-2" style="padding-top: 4px;"></i><span>Integración automática con el chatter para adjuntos y notas.</span></li>
+            <li class="d-flex align-items-start mb-2"><i class="fa fa-check-circle-o text-success mr-2" style="padding-top: 4px;"></i><span>Campo de secuencia para una referencia única del asistente.</span></li>
+        </ul>
+    </div>
+    
+    <div class="mt-4">
+        <h3>Arquitectura para Desarrolladores</h3>
+        <p>Para crear un nuevo asistente, tu modelo principal debe heredar de <code>assistant.journal.entry.base</code>:</p>
+        <pre style="background-color: #282c34; color: #abb2bf; padding: 15px; border-radius: 5px; font-family: 'Courier New', Courier, monospace;">
+class MiNuevoAsistente(models.Model):
+    _name = 'mi.nuevo.asistente'
+    _inherit = 'assistant.journal.entry.base'</pre>
+        <p>Deberás implementar los siguientes métodos en tu modelo para que la lógica de <code>action_post</code> funcione:</p>
+        <ul>
+            <li><strong><code>_get_journal(self)</code></strong>: Debe devolver el registro del <code>account.journal</code> que se usará.</li>
+            <li><strong><code>_prepare_move_lines(self)</code></strong>: Debe devolver una lista de tuplas con las líneas del asiento.</li>
+        </ul>
+    </div>
+
+    <div class="mt-4 p-3" style="background-color: #f8f9fa; border: 1px solid #dee2e6; border-radius: 5px;">
+        <h4>Sobre el Autor y la Misión Open Source</h4>
+        <p>
+            Este módulo ha sido desarrollado por <strong>Marlon Macario</strong>. Como parte de mi compromiso con el software libre en Guatemala, he iniciado <strong>Odoo Libre GT</strong>: una iniciativa para construir una comunidad sólida, establecer estándares de desarrollo y generar recursos que impulsen la adopción de Odoo en el país.
+        </p>
+        <p>
+            Si este módulo te resulta útil, por favor considera apoyar la misión. Tu patrocinio me permite dedicar más tiempo al desarrollo de herramientas open source como esta y al crecimiento del ecosistema Odoo en Guatemala.
+        </p>
+        <div class="d-flex justify-content-around flex-wrap">
+            <a href="https://github.com/OdooLibreGT" target="_blank" class="btn btn-light m-2">
+                <i class="fa fa-github"></i> Conoce Odoo Libre GT
+            </a>
+            <a href="https://github.com/sponsors/MarlonMac/" target="_blank" class="btn btn-danger m-2">
+                <i class="fa fa-heart"></i> Apóyame en GitHub Sponsors
+            </a>
+            <a href="https://ko-fi.com/marlonm" target="_blank" class="btn btn-info m-2">
+                <i class="fa fa-coffee"></i> Invítame un Café en Ko-Fi
+            </a>
+        </div>
+    </div>
+</div>

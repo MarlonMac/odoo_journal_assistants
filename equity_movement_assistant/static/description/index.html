@@ -1,0 +1,82 @@
+<div class="container-fluid" style="padding: 0; margin: 0;">
+    <div class="d-flex align-items-center" style="background-color: #714B67; color: #fff; padding: 20px; border-radius: 5px;">
+        <img src="/equity_movement_assistant/static/description/icon.png" alt="Icono del Módulo" style="height: 64px; width: 64px; margin-right: 15px;">
+        <div>
+            <h1 style="margin: 0; font-weight: 500;">Asistente de Movimientos de Patrimonio</h1>
+            <p style="margin: 0; font-size: 1.1em;">Un formulario seguro para registrar aportes de capital y pago de dividendos.</p>
+        </div>
+    </div>
+
+    <div class="mt-4">
+        <h2>Control y Seguridad en Operaciones de Patrimonio</h2>
+        <p>
+            Este módulo proporciona un formulario seguro y simplificado para registrar transacciones de patrimonio, como <strong>aportes de capital de socios</strong> o el <strong>pago de dividendos y reparto de utilidades</strong>.
+        </p>
+        <p>
+            Forma parte del "Ecosistema de Asistentes de Asientos Contables" y su objetivo es dar un marco de control a operaciones contables de alta importancia, minimizando errores y asegurando la trazabilidad.
+        </p>
+    </div>
+
+    <div class="mt-4">
+        <h3>Características Principales</h3>
+        <ul class="list-unstyled">
+            <li class="d-flex align-items-start mb-2"><i class="fa fa-check-circle-o text-success mr-2" style="padding-top: 4px;"></i><span><strong>Flujo de Trabajo por Categorías:</strong> Permite preconfigurar tipos de movimientos (dividendos, aportes), asignando la cuenta de patrimonio y el tipo de transacción correctos para evitar errores.</span></li>
+            <li class="d-flex align-items-start mb-2"><i class="fa fa-check-circle-o text-success mr-2" style="padding-top: 4px;"></i><span><strong>Asientos Contables Precisos:</strong> Genera automáticamente el asiento de diario correcto según la naturaleza de la transacción (aporte o retiro).</span></li>
+            <li class="d-flex align-items-start mb-2"><i class="fa fa-check-circle-o text-success mr-2" style="padding-top: 4px;"></i><span><strong>Trazabilidad del Socio:</strong> Requiere la selección de un Socio o Accionista (<code>res.partner</code>) para cada transacción.</span></li>
+            <li class="d-flex align-items-start mb-2"><i class="fa fa-check-circle-o text-success mr-2" style="padding-top: 4px;"></i><span><strong>Integración con Flujo de Aprobación:</strong> Todos los movimientos deben ser aprobados antes de poder ser registrados contablemente.</span></li>
+        </ul>
+    </div>
+    
+    <div class="mt-4">
+        <h3>Configuración</h3>
+        <ol>
+            <li>Antes de usar el asistente, un contador debe ir a <strong>Asistentes de Diario > Configuración > Categorías de Movimientos de Patrimonio</strong>.</li>
+            <li>Ahí, debe crear las categorías necesarias. Por ejemplo:
+                <ul>
+                    <li><strong>Nombre:</strong> "Pago de Dividendos de Utilidades Retenidas"<br/>
+                        - <strong>Tipo:</strong> <code>Salida (Pago de Dividendos)</code><br/>
+                        - <strong>Cuenta de Patrimonio:</strong> <code>Utilidades Retenidas</code>
+                    </li>
+                    <li class="mt-2"><strong>Nombre:</strong> "Aporte de Capital de Socios"<br/>
+                        - <strong>Tipo:</strong> <code>Entrada (Aportes de Capital)</code><br/>
+                        - <strong>Cuenta de Patrimonio:</strong> <code>Capital Social</code>
+                    </li>
+                </ul>
+            </li>
+        </ol>
+    </div>
+
+    <div class="mt-4">
+        <h3>Uso</h3>
+        <ol>
+            <li>Navega a <strong>Asistentes de Diario > Movimientos de Patrimonio</strong>.</li>
+            <li>Crea un nuevo registro.</li>
+            <li>Selecciona la <strong>Categoría</strong> del movimiento. El tipo y la cuenta se llenarán automáticamente.</li>
+            <li>Asigna el <strong>Socio / Accionista</strong> y el <strong>Monto</strong>.</li>
+            <li>Selecciona el <strong>Diario de Pago/Cobro</strong> (Banco o Caja).</li>
+            <li>Adjunta el acta o documento de respaldo en el chatter.</li>
+            <li>Guarda y envía para aprobación.</li>
+        </ol>
+    </div>
+
+    <div class="mt-4 p-3" style="background-color: #f8f9fa; border: 1px solid #dee2e6; border-radius: 5px;">
+        <h4>Sobre el Autor y la Misión Open Source</h4>
+        <p>
+            Este módulo ha sido desarrollado por <strong>Marlon Macario</strong>. Como parte de mi compromiso con el software libre en Guatemala, he iniciado <strong>Odoo Libre GT</strong>: una iniciativa para construir una comunidad sólida, establecer estándares de desarrollo y generar recursos que impulsen la adopción de Odoo en el país.
+        </p>
+        <p>
+            Si este módulo te resulta útil, por favor considera apoyar la misión. Tu patrocinio me permite dedicar más tiempo al desarrollo de herramientas open source como esta y al crecimiento del ecosistema Odoo en Guatemala.
+        </p>
+        <div class="d-flex justify-content-around flex-wrap">
+            <a href="https://github.com/OdooLibreGT" target="_blank" class="btn btn-light m-2">
+                <i class="fa fa-github"></i> Conoce Odoo Libre GT
+            </a>
+            <a href="https://github.com/sponsors/MarlonMac/" target="_blank" class="btn btn-danger m-2">
+                <i class="fa fa-heart"></i> Apóyame en GitHub Sponsors
+            </a>
+            <a href="https://ko-fi.com/marlonm" target="_blank" class="btn btn-info m-2">
+                <i class="fa fa-coffee"></i> Invítame un Café en Ko-Fi
+            </a>
+        </div>
+    </div>
+</div>
