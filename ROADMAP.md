@@ -20,7 +20,7 @@ Este documento describe la hoja de ruta para el desarrollo de los módulos que c
   * **Objetivo:** Asistente para registrar la compra de activos fijos, generando el asiento contable inicial.
   * **Campos:** Nombre, Categoría de Activo, Proveedor, Monto, Cuenta de Activo Fijo.
 
-* **`loan_payment_assistant` (v1.0.0):**
+* **`loan_payment_assistant` (v1.0.0):** ✅
   * **Objetivo:** Asistente para registrar pagos de préstamos, separando capital e intereses.
   * **Campos:** Préstamo, Monto Capital, Monto Intereses, Diario de Pago.
 
@@ -28,7 +28,7 @@ Este documento describe la hoja de ruta para el desarrollo de los módulos que c
 
 ## Fase 3: Funcionalidades Avanzadas y de Control
 
-* **Flujo de Aprobación (en `base` v1.1.0):**
+* **Flujo de Aprobación (en `base` v1.0.0):** ✅
   * **Objetivo:** Añadir una capa de aprobación opcional al módulo base para que cualquier asistente pueda tener un flujo de "borrador -> para aprobar -> registrado".
 * **`equity_movement_assistant` (v1.0.0):**
   * **Objetivo:** Asistente para registrar movimientos de patrimonio como dividendos o aportes.

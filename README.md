@@ -22,7 +22,7 @@ El ecosistema se basa en una arquitectura modular:
 * **`journal_entry_assistant_base`** (Base - No visible)
 * **`expense_assistant`** (Asistente de Gastos Corporativos)
 * **`asset_purchase_assistant`** (Asistente de Compra de Activos)
-* **`loan_payment_assistant`** (Asistente de Pago de Préstamos - Planeado)
+* **`loan_payment_assistant`** (Asistente de Pago de Préstamos)
 * **`equity_movement_assistant`** (Asistente de Movimientos de Patrimonio - Planeado)
 
 ## Instalación
