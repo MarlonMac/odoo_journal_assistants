@@ -57,6 +57,10 @@ class AssetPurchaseAssistant(models.Model):
 
     def _prepare_move_lines(self):
         self.ensure_one()
+        
+        if not self.message_attachment_count > 0:
+            raise UserError(_('¡Adjunto Requerido! Debe adjuntar al menos un documento de respaldo.'))
+        
         if self.amount <= 0:
             raise UserError(_('El monto del activo debe ser positivo.'))
 
