@@ -1,0 +1,5 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+"access_equity_movement_assistant_accountant","Permisos para Asistente de Patrimonio (Contador)",model_equity_movement_assistant,account.group_account_user,1,1,1,1
+"access_equity_movement_assistant_admin","Permisos para Asistente de Patrimonio (Admin)",model_equity_movement_assistant,base.group_system,1,1,1,1
+"access_equity_movement_category_accountant","Permisos para Categorías de Patrimonio (Contador)",model_equity_movement_category,account.group_account_user,1,1,1,1
+"access_equity_movement_category_admin","Permisos para Categorías de Patrimonio (Admin)",model_equity_movement_category,base.group_system,1,1,1,1

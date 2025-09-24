@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_equity_movement_category_tree" model="ir.ui.view">
+        <field name="name">equity.movement.category.tree</field>
+        <field name="model">equity.movement.category</field>
+        <field name="arch" type="xml">
+            <tree string="Categorías de Movimientos de Patrimonio">
+                <field name="name"/>
+                <field name="movement_type"/>
+                <field name="equity_account_id"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_equity_movement_category_form" model="ir.ui.view">
+        <field name="name">equity.movement.category.form</field>
+        <field name="model">equity.movement.category</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group>
+                        <field name="name"/>
+                        <field name="movement_type"/>
+                        <field name="equity_account_id"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_equity_movement_category" model="ir.actions.act_window">
+        <field name="name">Categorías de Movimientos de Patrimonio</field>
+        <field name="res_model">equity.movement.category</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <menuitem id="menu_equity_movement_category"
+              name="Categorías de Movimientos de Patrimonio"
+              parent="expense_assistant.menu_expense_assistant_config"
+              action="action_equity_movement_category"
+              sequence="40"/>
+</odoo>

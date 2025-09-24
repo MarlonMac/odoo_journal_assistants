@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_equity_movement_assistant_tree" model="ir.ui.view">
+        <field name="name">equity.movement.assistant.tree</field>
+        <field name="model">equity.movement.assistant</field>
+        <field name="arch" type="xml">
+            <tree string="Movimientos de Patrimonio">
+                <field name="name"/>
+                <field name="date"/>
+                <field name="partner_id"/>
+                <field name="category_id"/>
+                <field name="amount" sum="Total"/>
+                <field name="state"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_equity_movement_assistant_form" model="ir.ui.view">
+        <field name="name">equity.movement.assistant.form</field>
+        <field name="model">equity.movement.assistant</field>
+        <field name="arch" type="xml">
+            <form string="Asistente de Movimiento de Patrimonio">
+                <header>
+                    <button name="action_submit_for_approval" string="Enviar para Aprobación" type="object" class="oe_highlight" attrs="{'invisible': [('state', '!=', 'draft')]}"/>
+                    <button name="action_approve" string="Aprobar" type="object" class="oe_highlight" attrs="{'invisible': [('state', '!=', 'to_approve')]}" groups="journal_entry_assistant_base.group_journal_assistant_approver"/>
+                    <button name="action_reject" string="Rechazar" type="object" attrs="{'invisible': [('state', '!=', 'to_approve')]}" groups="journal_entry_assistant_base.group_journal_assistant_approver"/>
+                    <button name="action_post" string="Registrar Contablemente" type="object" class="oe_highlight" attrs="{'invisible': [('state', '!=', 'approved')]}" groups="journal_entry_assistant_base.group_journal_assistant_approver"/>
+                    <button name="action_cancel" string="Cancelar/Revertir" type="object" attrs="{'invisible': [('state', '!=', 'posted')]}"/>
+                    <button name="action_to_draft" string="Volver a Borrador" type="object" attrs="{'invisible': [('state', '!=', 'cancelled')]}"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,to_approve,approved,posted"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="name" readonly="1"/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="category_id" options="{'no_create': True, 'no_open': True}"/>
+                            <field name="movement_type"/>
+                            <field name="equity_account_id"/>
+                            <field name="description"/>
+                        </group>
+                        <group>
+                            <field name="partner_id"/>
+                            <field name="date"/>
+                            <field name="amount"/>
+                            <field name="payment_journal_id"/>
+                            <field name="move_id" attrs="{'invisible': [('move_id', '=', False)]}"/>
+                        </group>
+                    </group>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="activity_ids"/>
+                    <field name="message_ids"/>
+                </div>
+            </form>
+        </field>
+    </record>
+    
+    <record id="action_equity_movement_assistant" model="ir.actions.act_window">
+        <field name="name">Asistente de Movimientos de Patrimonio</field>
+        <field name="res_model">equity.movement.assistant</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <menuitem id="menu_equity_movement_assistant"
+              name="Movimientos de Patrimonio"
+              parent="expense_assistant.menu_expense_assistant_root"
+              action="action_equity_movement_assistant"
+              sequence="40"/>
+</odoo>

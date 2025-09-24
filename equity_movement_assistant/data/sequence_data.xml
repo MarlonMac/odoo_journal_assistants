@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <record id="seq_equity_movement_assistant" model="ir.sequence">
+            <field name="name">Secuencia de Asistente de Movimientos de Patrimonio</field>
+            <field name="code">equity.movement.assistant</field>
+            <field name="prefix">PATRIMONIO/%(year)s/</field>
+            <field name="padding">4</field>
+            <field name="company_id" eval="False"/>
+        </record>
+    </data>
+</odoo>
