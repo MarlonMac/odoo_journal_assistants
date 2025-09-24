@@ -1,0 +1,76 @@
+<div class="container-fluid" style="padding: 0; margin: 0;">
+    <div class="d-flex align-items-center" style="background-color: #946788; color: #fff; padding: 20px; border-radius: 5px;">
+        <img src="/loan_payment_assistant/static/description/icon.png" alt="Icono del Módulo" style="height: 64px; width: 64px; margin-right: 15px;">
+        <div>
+            <h1 style="margin: 0; font-weight: 500;">Asistente de Pago de Préstamos</h1>
+            <p style="margin: 0; font-size: 1.1em;">Simplifica el registro de cuotas de préstamos separando capital e intereses.</p>
+        </div>
+    </div>
+
+    <div class="mt-4">
+        <h2>Registro Contable de Préstamos sin Complicaciones</h2>
+        <p>
+            Este módulo simplifica el registro de pagos de cuotas de préstamos, una tarea que de otro modo requeriría un asiento de diario manual complejo.
+        </p>
+        <p>
+            Al formar parte del "Ecosistema de Asistentes de Asientos Contables", garantiza que los pagos se registren de manera consistente, precisa y bajo un flujo de aprobación.
+        </p>
+    </div>
+
+    <div class="mt-4">
+        <h3>Características Principales</h3>
+        <ul class="list-unstyled">
+            <li class="d-flex align-items-start mb-2"><i class="fa fa-check-circle-o text-success mr-2" style="padding-top: 4px;"></i><span><strong>Separación de Capital e Intereses:</strong> Permite al usuario introducir fácilmente el monto correspondiente al capital y a los intereses de una cuota.</span></li>
+            <li class="d-flex align-items-start mb-2"><i class="fa fa-check-circle-o text-success mr-2" style="padding-top: 4px;"></i><span><strong>Asiento Contable de 3 Líneas:</strong> Genera automáticamente el asiento correcto, con débitos al pasivo (capital) y al gasto (intereses), y un crédito al banco.</span></li>
+            <li class="d-flex align-items-start mb-2"><i class="fa fa-check-circle-o text-success mr-2" style="padding-top: 4px;"></i><span><strong>Gestión de Préstamos:</strong> Introduce un modelo para registrar los préstamos de la empresa, asociando a cada uno su acreedor y cuentas contables.</span></li>
+            <li class="d-flex align-items-start mb-2"><i class="fa fa-check-circle-o text-success mr-2" style="padding-top: 4px;"></i><span><strong>Flujo de Aprobación Integrado:</strong> Cada pago debe ser aprobado antes de impactar la contabilidad, gracias a la herencia del módulo base.</span></li>
+        </ul>
+    </div>
+    
+    <div class="mt-4">
+        <h3>Configuración</h3>
+        <ol>
+            <li>Un contador debe ir a <strong>Asistentes de Diario > Configuración > Préstamos</strong>.</li>
+            <li>Ahí, debe crear un registro por cada préstamo de la empresa, especificando:
+                <ul>
+                    <li>El <strong>Acreedor</strong> (quién otorgó el préstamo).</li>
+                    <li>La <strong>Cuenta de Pasivo (Capital)</strong> donde está registrada la deuda.</li>
+                    <li>La <strong>Cuenta de Gasto (Intereses)</strong> donde se registrarán los intereses.</li>
+                </ul>
+            </li>
+        </ol>
+    </div>
+
+    <div class="mt-4">
+        <h3>Uso</h3>
+        <ol>
+            <li>Navega a <strong>Asistentes de Diario > Pago de Préstamos</strong>.</li>
+            <li>Crea un nuevo registro y selecciona el <strong>Préstamo</strong> a pagar.</li>
+            <li>Introduce el monto de <strong>Capital</strong> y de <strong>Intereses</strong> de la cuota.</li>
+            <li>Selecciona el <strong>Diario de Pago</strong> (Banco o Caja) desde donde se realizó la transacción.</li>
+            <li>Adjunta el comprobante de pago en el chatter.</li>
+            <li>Guarda y envía para aprobación.</li>
+        </ol>
+    </div>
+
+    <div class="mt-4 p-3" style="background-color: #f8f9fa; border: 1.px solid #dee2e6; border-radius: 5px;">
+        <h4>Sobre el Autor y la Misión Open Source</h4>
+        <p>
+            Este módulo ha sido desarrollado por <strong>Marlon Macario</strong>. Como parte de mi compromiso con el software libre en Guatemala, he iniciado <strong>Odoo Libre GT</strong>: una iniciativa para construir una comunidad sólida, establecer estándares de desarrollo y generar recursos que impulsen la adopción de Odoo en el país.
+        </p>
+        <p>
+            Si este módulo te resulta útil, por favor considera apoyar la misión. Tu patrocinio me permite dedicar más tiempo al desarrollo de herramientas open source como esta y al crecimiento del ecosistema Odoo en Guatemala.
+        </p>
+        <div class="d-flex justify-content-around flex-wrap">
+            <a href="https://github.com/OdooLibreGT" target="_blank" class="btn btn-light m-2">
+                <i class="fa fa-github"></i> Conoce Odoo Libre GT
+            </a>
+            <a href="https://github.com/sponsors/MarlonMac/" target="_blank" class="btn btn-danger m-2">
+                <i class="fa fa-heart"></i> Apóyame en GitHub Sponsors
+            </a>
+            <a href="https://ko-fi.com/marlonm" target="_blank" class="btn btn-info m-2">
+                <i class="fa fa-coffee"></i> Invítame un Café en Ko-Fi
+            </a>
+        </div>
+    </div>
+</div>

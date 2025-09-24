@@ -1,0 +1,85 @@
+<div class="container-fluid" style="padding: 0; margin: 0;">
+    <div class="d-flex align-items-center" style="background-color: #714B67; color: #fff; padding: 20px; border-radius: 5px;">
+        <img src="/asset_purchase_assistant/static/description/icon.png" alt="Icono del Módulo" style="height: 64px; width: 64px; margin-right: 15px;">
+        <div>
+            <h1 style="margin: 0; font-weight: 500;">Asistente de Compra de Activos</h1>
+            <p style="margin: 0; font-size: 1.1em;">Registra la compra de activos fijos y genera su asiento inicial.</p>
+        </div>
+    </div>
+
+    <div class="alert alert-warning mt-4" role="alert">
+        <h4 class="alert-heading"><i class="fa fa-exclamation-triangle"></i> Dependencia Externa Requerida</h4>
+        <p>
+            Este módulo <strong>requiere</strong> que el siguiente módulo de terceros esté instalado en tu base de datos:
+        </p>
+        <hr>
+        <p class="mb-0">
+            <strong>Módulo:</strong> Basic Accounting Kit<br>
+            <strong>Autor:</strong> Cybrosys Technologies<br>
+            <strong>Descargar desde:</strong> <a href="https://apps.odoo.com/apps/modules/16.0/base_accounting_kit" target="_blank" class="alert-link">Odoo App Store</a>
+        </p>
+    </div>
+
+    <div class="mt-4">
+        <h2>Gestión Simplificada de Compra de Activos</h2>
+        <p>
+            Este módulo proporciona un formulario simplificado para registrar la compra de activos fijos (equipo de cómputo, vehículos, mobiliario, etc.), generando el asiento de diario inicial para su posterior gestión contable.
+        </p>
+    </div>
+
+    <div class="mt-4">
+        <h3>Características Principales</h3>
+        <ul class="list-unstyled">
+            <li class="d-flex align-items-start mb-2"><i class="fa fa-check-circle-o text-success mr-2" style="padding-top: 4px;"></i><span><strong>Flujo de Trabajo por Categorías:</strong> Asigna automáticamente la cuenta de activo correcta al seleccionar una categoría predefinida.</span></li>
+            <li class="d-flex align-items-start mb-2"><i class="fa fa-check-circle-o text-success mr-2" style="padding-top: 4px;"></i><span><strong>Manejo de Pagos Flexibles:</strong> Registra tanto compras pagadas al instante (pago directo) como compras a crédito que generan una cuenta por pagar.</span></li>
+            <li class="d-flex align-items-start mb-2"><i class="fa fa-check-circle-o text-success mr-2" style="padding-top: 4px;"></i><span><strong>Interfaz Dinámica:</strong> El formulario se adapta, mostrando solo los campos necesarios según el tipo de pago.</span></li>
+            <li class="d-flex align-items-start mb-2"><i class="fa fa-check-circle-o text-success mr-2" style="padding-top: 4px;"></i><span><strong>Flujo de Aprobación Integrado:</strong> Hereda el sistema de aprobación del módulo base para un mayor control.</span></li>
+        </ul>
+    </div>
+    
+    <div class="mt-4">
+        <h3>Configuración</h3>
+        <ol>
+            <li>Ve a <strong>Asistentes de Diario > Configuración > Categorías de Activos</strong> para crear las categorías necesarias (ej. "Mobiliario y Equipo").</li>
+            <li><strong>Importante:</strong> Asigna a cada categoría su cuenta contable de activo correspondiente.</li>
+            <li>Asegúrate de tener configurada al menos una cuenta de tipo "Cuentas por Pagar" en tu plan contable.</li>
+        </ol>
+    </div>
+
+    <div class="mt-4">
+        <h3>Uso</h3>
+        <ol>
+            <li>Navega a <strong>Asistentes de Diario > Compra de Activos</strong> y crea un nuevo registro.</li>
+            <li>Completa la descripción, proveedor y monto.</li>
+            <li>Selecciona la <strong>Categoría de Activo</strong>.</li>
+            <li>Indica si la compra está <strong>"Pendiente de Pago"</strong>.
+                <ul>
+                    <li>Si lo está, completa la <strong>Cuenta por Pagar</strong> y la <strong>Fecha de Vencimiento</strong>.</li>
+                    <li>Si no lo está, selecciona el <strong>Diario de Pago</strong> de la empresa.</li>
+                </ul>
+            </li>
+            <li>Adjunta la factura o comprobante en el chatter y envía para aprobación.</li>
+        </ol>
+    </div>
+
+    <div class="mt-4 p-3" style="background-color: #f8f9fa; border: 1px solid #dee2e6; border-radius: 5px;">
+        <h4>Sobre el Autor y la Misión Open Source</h4>
+        <p>
+            Este módulo ha sido desarrollado por <strong>Marlon Macario</strong>. Como parte de mi compromiso con el software libre en Guatemala, he iniciado <strong>Odoo Libre GT</strong>: una iniciativa para construir una comunidad sólida, establecer estándares de desarrollo y generar recursos que impulsen la adopción de Odoo en el país.
+        </p>
+        <p>
+            Si este módulo te resulta útil, por favor considera apoyar la misión. Tu patrocinio me permite dedicar más tiempo al desarrollo de herramientas open source como esta y al crecimiento del ecosistema Odoo en Guatemala.
+        </p>
+        <div class="d-flex justify-content-around flex-wrap">
+            <a href="https://github.com/OdooLibreGT" target="_blank" class="btn btn-light m-2">
+                <i class="fa fa-github"></i> Conoce Odoo Libre GT
+            </a>
+            <a href="https://github.com/sponsors/MarlonMac/" target="_blank" class="btn btn-danger m-2">
+                <i class="fa fa-heart"></i> Apóyame en GitHub Sponsors
+            </a>
+            <a href="https://ko-fi.com/marlonm" target="_blank" class="btn btn-info m-2">
+                <i class="fa fa-coffee"></i> Invítame un Café en Ko-Fi
+            </a>
+        </div>
+    </div>
+</div>
