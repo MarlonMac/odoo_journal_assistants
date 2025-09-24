@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_asset_purchase_assistant_tree" model="ir.ui.view">
+        <field name="name">asset.purchase.assistant.tree</field>
+        <field name="model">asset.purchase.assistant</field>
+        <field name="arch" type="xml">
+            <tree string="Compras de Activos">
+                <field name="name"/>
+                <field name="date"/>
+                <field name="description"/>
+                <field name="supplier_id"/>
+                <field name="amount" sum="Total"/>
+                <field name="state"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_asset_purchase_assistant_form" model="ir.ui.view">
+        <field name="name">asset.purchase.assistant.form</field>
+        <field name="model">asset.purchase.assistant</field>
+        <field name="arch" type="xml">
+            <form string="Asistente de Compra de Activo">
+                <header>
+                    <button name="action_submit_for_approval" string="Enviar para Aprobación" type="object" class="oe_highlight" attrs="{'invisible': [('state', '!=', 'draft')]}"/>
+                    <button name="action_approve" string="Aprobar" type="object" class="oe_highlight" attrs="{'invisible': [('state', '!=', 'to_approve')]}" groups="journal_entry_assistant_base.group_journal_assistant_approver"/>
+                    <button name="action_reject" string="Rechazar" type="object" attrs="{'invisible': [('state', '!=', 'to_approve')]}" groups="journal_entry_assistant_base.group_journal_assistant_approver"/>
+                    <button name="action_post" string="Registrar Contablemente" type="object" class="oe_highlight" attrs="{'invisible': [('state', '!=', 'approved')]}" groups="journal_entry_assistant_base.group_journal_assistant_approver"/>
+                    <button name="action_cancel" string="Cancelar/Revertir" type="object" attrs="{'invisible': [('state', '!=', 'posted')]}"/>
+                    <button name="action_to_draft" string="Volver a Borrador" type="object" attrs="{'invisible': [('state', '!=', 'cancelled')]}"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,to_approve,approved,posted"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="name" readonly="1"/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="description"/>
+                            <field name="supplier_id"/>
+                            <field name="amount"/>
+                            <field name="category_id"/>
+                            <field name="asset_account_id"/>
+                        </group>
+                        <group>
+                            <field name="date"/>
+                            <field name="is_pending_payment"/>
+                            <field name="payment_journal_id" attrs="{'invisible': [('is_pending_payment', '=', True)], 'required': [('is_pending_payment', '=', False)]}"/>
+                            <field name="payable_account_id" attrs="{'invisible': [('is_pending_payment', '=', False)], 'required': [('is_pending_payment', '=', True)]}"/>
+                            <field name="due_date" attrs="{'invisible': [('is_pending_payment', '=', False)]}"/>
+                            <field name="move_id" attrs="{'invisible': [('move_id', '=', False)]}"/>
+                        </group>
+                    </group>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="activity_ids"/>
+                    <field name="message_ids"/>
+                </div>
+            </form>
+        </field>
+    </record>
+    
+    <record id="action_asset_purchase_assistant" model="ir.actions.act_window">
+        <field name="name">Asistente de Compra de Activos</field>
+        <field name="res_model">asset.purchase.assistant</field>
+        <field name="view_mode">tree,form</field>
+        <field name="help" type="html"><p class="o_view_nocontent_smiling_face">Crea un nuevo registro de compra de activo.</p></field>
+    </record>
+
+    <menuitem id="menu_asset_purchase_assistant"
+              name="Compra de Activos"
+              parent="expense_assistant.menu_expense_assistant_root"
+              action="action_asset_purchase_assistant"
+              sequence="20"/>
+</odoo>

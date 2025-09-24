@@ -1,0 +1,7 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+"access_asset_purchase_assistant_billing","Permisos para Asistente de Activos (Facturación)",model_asset_purchase_assistant,account.group_account_invoice,1,1,1,1
+"access_asset_purchase_assistant_accountant","Permisos para Asistente de Activos (Contador)",model_asset_purchase_assistant,account.group_account_user,1,1,1,1
+"access_asset_purchase_assistant_admin","Permisos para Asistente de Activos (Admin)",model_asset_purchase_assistant,base.group_system,1,1,1,1
+"access_asset_category_billing","Permisos para Categorías de Activos (Facturación)",model_asset_category,account.group_account_invoice,1,1,1,1
+"access_asset_category_accountant","Permisos para Categorías de Activos (Contador)",model_asset_category,account.group_account_user,1,1,1,1
+"access_asset_category_admin","Permisos para Categorías de Activos (Admin)",model_asset_category,base.group_system,1,1,1,1

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <record id="seq_asset_purchase_assistant" model="ir.sequence">
+            <field name="name">Secuencia de Asistente de Compra de Activos</field>
+            <field name="code">asset.purchase.assistant</field>
+            <field name="prefix">ACTIVO/%(year)s/</field>
+            <field name="padding">4</field>
+            <field name="company_id" eval="False"/>
+        </record>
+    </data>
+</odoo>
