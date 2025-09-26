@@ -11,7 +11,7 @@
                     <button name="action_approve" string="Aprobar" type="object" class="oe_highlight" 
                             attrs="{'invisible': [('state', '!=', 'to_approve')]}" 
                             groups="journal_entry_assistant_base.group_journal_assistant_approver"/>
-                    
+                            
                     <button name="action_reject" string="Rechazar" type="object" 
                             attrs="{'invisible': [('state', '!=', 'to_approve')]}" 
                             groups="journal_entry_assistant_base.group_journal_assistant_approver"/>
@@ -20,12 +20,17 @@
                             attrs="{'invisible': [('state', '!=', 'approved')]}" 
                             groups="journal_entry_assistant_base.group_journal_assistant_approver"/>
                     
+                    <button name="action_register_payment" string="Registrar Pago" type="object" class="oe_highlight"
+                            attrs="{'invisible': ['|', '|', ('state', '!=', 'posted'), ('is_reimbursement', '=', False), ('amount_due', '&lt;=', 0)]}"
+                            groups="account.group_account_invoice"/>
                     <button name="action_cancel" string="Cancelar/Revertir" type="object" confirm="¿Estás seguro? Se creará un asiento de reversión." attrs="{'invisible': [('state', '!=', 'posted')]}"/>
                     <button name="action_to_draft" string="Volver a Borrador" type="object" attrs="{'invisible': [('state', '!=', 'cancelled')]}"/>
                     
                     <field name="state" widget="statusbar" statusbar_visible="draft,to_approve,approved,posted"/>
-                    </header>
+                </header>
                 <sheet>
+                    <widget name="web_ribbon" title="Pagado" bg_color="bg-success"
+                            attrs="{'invisible': ['|', '|', ('state', '!=', 'posted'), ('is_reimbursement', '=', False), ('amount_due', '!=', 0)]}"/>
                     <div class="oe_title">
                         <h1><field name="name" readonly="1"/></h1>
                     </div>
@@ -38,13 +43,13 @@
                         </group>
                         <group>
                             <field name="date"/>
-                            <field name="due_date"/>
                             <field name="payment_method"/>
                             <field name="category_id"/>
                             <field name="expense_account_id"/>
                             <field name="analytic_account_id"/>
                             <field name="move_id" attrs="{'invisible': [('move_id', '=', False)]}"/>
-                        </group>
+                            <field name="amount_due" invisible="1"/>
+                            </group>
                     </group>
                     <group>
                         <group><field name="is_reimbursement"/></group>
@@ -52,6 +57,7 @@
                     <group attrs="{'invisible': [('is_reimbursement', '=', False)]}">
                         <separator string="Detalles de la Cuenta por Pagar"/>
                         <group>
+                             <field name="due_date"/>
                              <field name="reimburse_partner_id"/>
                              <field name="payable_account_id"/>
                         </group>
@@ -61,7 +67,20 @@
                             <field name="payment_journal_id" attrs="{'invisible': [('is_reimbursement', '=', True)], 'required': [('is_reimbursement', '=', False)]}"/>
                         </group>
                     </group>
-                </sheet>
+
+                    <notebook>
+                        <page string="Pagos" name="payments" attrs="{'invisible': [('is_reimbursement', '=', False)]}">
+                            <field name="payment_ids" readonly="1">
+                                <tree>
+                                    <field name="date"/>
+                                    <field name="journal_id"/>
+                                    <field name="amount"/>
+                                    <field name="state"/>
+                                </tree>
+                            </field>
+                        </page>
+                    </notebook>
+                    </sheet>
                 <div class="oe_chatter">
                     <field name="message_follower_ids"/>
                     <field name="activity_ids"/>
