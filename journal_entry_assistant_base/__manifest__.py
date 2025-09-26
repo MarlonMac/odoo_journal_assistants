@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Asistente de Asientos de Diario (Base)',
-    'version': '16.0.1.0.0',
+    'version': '16.0.1.1.0',
     'summary': 'Módulo base para el ecosistema de asistentes de asientos contables.',
     'description': """
         Este módulo proporciona el modelo abstracto y la lógica común

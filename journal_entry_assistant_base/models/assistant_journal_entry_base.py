@@ -10,8 +10,7 @@ class AssistantJournalEntryBase(models.AbstractModel):
     _description = 'Asistente de Asientos de Diario (Base)'
     _order = 'date desc, id desc'
     _inherit = ['mail.thread', 'mail.activity.mixin']
-
-    # === INICIO CAMBIO APROBACIÓN ===
+    # --- CAMPO DE ESTADO ---
     state = fields.Selection([
         ('draft', 'Borrador'),
         ('to_approve', 'Para Aprobar'),
@@ -19,16 +18,50 @@ class AssistantJournalEntryBase(models.AbstractModel):
         ('posted', 'Registrado'),
         ('cancelled', 'Cancelado'),
     ], string='Estado', default='draft', copy=False, tracking=True)
-    # === FIN CAMBIO APROBACIÓN ===
 
-    # ... (campos name, description, date, move_id, company_id sin cambios) ...
+    # --- CAMPOS COMUNES ---
     name = fields.Char(string='Referencia', required=True, copy=False, readonly=True, default=lambda self: _('Nuevo'))
     description = fields.Char(string='Descripción', required=True, states={'posted': [('readonly', True)], 'cancelled': [('readonly', True)]}, tracking=True)
     date = fields.Date(string='Fecha Contable', required=True, default=fields.Date.context_today, states={'posted': [('readonly', True)], 'cancelled': [('readonly', True)]}, tracking=True)
     move_id = fields.Many2one('account.move', string='Asiento Contable', readonly=True, copy=False)
     company_id = fields.Many2one('res.company', string='Compañía', required=True, default=lambda self: self.env.company)
 
-    # --- LÓGICA DE SECUENCIA ---
+    # --- CAMPOS DE PAGO ---
+    # El currency_id se hereda de company_id para asegurar que los pagos se registren en la moneda correcta
+    currency_id = fields.Many2one(
+        'res.currency', 
+        string='Moneda', 
+        related='company_id.currency_id', 
+        store=True
+    )   
+
+    payment_ids = fields.One2many('account.payment', 'assistant_id', string='Pagos')
+    amount_paid = fields.Monetary(string='Monto Pagado', compute='_compute_payment_amounts', store=True)
+    amount_due = fields.Monetary(string='Saldo Pendiente', compute='_compute_payment_amounts', store=True)
+
+    @api.depends('payment_ids.state', 'amount')
+    def _compute_payment_amounts(self):
+        for rec in self:
+            # Esta lógica funcionará siempre que el modelo hijo tenga un campo llamado 'amount'
+            amount_total = rec.amount if hasattr(rec, 'amount') else 0
+            paid = sum(rec.payment_ids.filtered(lambda p: p.state == 'posted').mapped('amount'))
+            rec.amount_paid = paid
+            rec.amount_due = amount_total - paid
+
+    def action_register_payment(self):
+        self.ensure_one()
+        return {
+            'name': _('Registrar Pago'),
+            'res_model': 'account.payment.register',
+            'view_mode': 'form',
+            'context': {
+                'active_model': 'account.move',
+                'active_ids': self.move_id.ids,
+            },
+            'target': 'new',
+            'type': 'ir.actions.act_window',
+        }
+
     @api.model
     def create(self, vals):
         # Usamos el _name del modelo hijo para buscar la secuencia correcta
@@ -38,8 +71,6 @@ class AssistantJournalEntryBase(models.AbstractModel):
         return super(AssistantJournalEntryBase, self).create(vals)
 
     # --- LÓGICA DE BOTONES (ACCIONES) ---
-    
-    # === INICIO CAMBIO APROBACIÓN ===
     def action_submit_for_approval(self):
         self.write({'state': 'to_approve'})
 
@@ -49,20 +80,18 @@ class AssistantJournalEntryBase(models.AbstractModel):
     def action_reject(self):
         # Podríamos añadir un wizard para pedir el motivo del rechazo en el futuro
         self.write({'state': 'draft'})
-    # === FIN CAMBIO APROBACIÓN ===
 
     def action_post(self):
         self.ensure_one()
-        # === INICIO CAMBIO APROBACIÓN: Ahora solo se postea desde Aprobado ===
+        # === APROBACIÓN: Ahora solo se postea desde Aprobado ===
         if self.state != 'approved':
             raise UserError(_('Solo se pueden registrar documentos en estado Aprobado.'))
-        # === FIN CAMBIO APROBACIÓN ===
 
         move_vals = self._prepare_move_vals()
-
         move = self.env['account.move'].create(move_vals)
         move.action_post()
         
+        move.assistant_id = self
         return self.write({'state': 'posted', 'move_id': move.id})
 
     def action_cancel(self):

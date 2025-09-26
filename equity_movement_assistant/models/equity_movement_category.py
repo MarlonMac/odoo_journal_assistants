@@ -8,7 +8,7 @@ class EquityMovementCategory(models.Model):
     name = fields.Char(string='Nombre de la Categoría', required=True)
     movement_type = fields.Selection([
         ('contribution', 'Entrada (Aportes de Capital)'),
-        ('dividend', 'Salida (Pago de Dividendos)')
+        ('dividend', 'Salida (Declaración de Dividendos)')
     ], string='Tipo de Movimiento', required=True)
     
     equity_account_id = fields.Many2one(
@@ -17,4 +17,10 @@ class EquityMovementCategory(models.Model):
         required=True,
         domain="[('deprecated', '=', False)]",
         help="La cuenta de patrimonio afectada. Ej: Capital Social, Utilidades Retenidas."
+    )
+    liability_account_id = fields.Many2one(
+        'account.account', 
+        string='Cuenta de Pasivo (Crédito para Dividendos)', 
+        domain="[('deprecated', '=', False)]",
+        help="La cuenta de deuda que se crea al declarar un dividendo. Ej: Dividendos por Pagar."
     )

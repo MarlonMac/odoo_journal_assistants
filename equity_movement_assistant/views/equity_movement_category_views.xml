@@ -8,6 +8,7 @@
                 <field name="name"/>
                 <field name="movement_type"/>
                 <field name="equity_account_id"/>
+                <field name="liability_account_id"/>
             </tree>
         </field>
     </record>
@@ -22,6 +23,8 @@
                         <field name="name"/>
                         <field name="movement_type"/>
                         <field name="equity_account_id"/>
+                        <field name="liability_account_id" 
+                               attrs="{'invisible': [('movement_type', '!=', 'dividend')], 'required': [('movement_type', '=', 'dividend')]}"/>
                     </group>
                 </sheet>
             </form>

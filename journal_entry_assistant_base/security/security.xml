@@ -3,7 +3,7 @@
     <data noupdate="1">
         <record id="group_journal_assistant_approver" model="res.groups">
             <field name="name">Aprobador de Asistentes de Diario</field>
-            <field name="category_id" ref="base.module_category_accounting_accounting"/>
+            
             <field name="implied_ids" eval="[(4, ref('account.group_account_user'))]"/>
             <field name="comment">
                 Los usuarios con este rol pueden aprobar, rechazar y registrar los asientos

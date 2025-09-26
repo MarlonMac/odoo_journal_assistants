@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Asistente de Movimientos de Patrimonio',
-    'version': '16.0.1.0.0',
+    'version': '16.0.1.1.0',
     'summary': 'Asistente para registrar aportes de capital y pago de dividendos.',
     'description': """
         Simplifica el registro de transacciones de patrimonio como aportes de socios

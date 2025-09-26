@@ -6,10 +6,11 @@ Este módulo es el núcleo del "Ecosistema de Asistentes de Asientos Contables".
 
 El objetivo de este módulo es la **reutilización de código** y la **estandarización**. Proporciona un modelo abstracto (`assistant.journal.entry.base`) que cualquier otro módulo puede heredar para obtener instantáneamente:
 
-* Un flujo de estados (`borrador`, `registrado`, `cancelado`).
+* Un flujo de estados (`Borrador`, `Para Aprobar`, `Aprobado`, `Registrado`, `Cancelado`).
 * Lógica para registrar, cancelar y revertir asientos contables (`account.move`).
 * Integración con el chatter de Odoo para adjuntar archivos y registrar notas.
-* Un campo de secuencia para una referencia única.
+* Un sistema de aprobación con un grupo de seguridad (`Aprobador de Asistentes de Diario`).
+* Una función integrada para registrar pagos (`action_register_payment`) que reutiliza el asistente nativo de Odoo.
 
 ## Arquitectura para Desarrolladores
 

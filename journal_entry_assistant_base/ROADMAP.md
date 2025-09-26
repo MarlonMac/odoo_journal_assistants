@@ -4,11 +4,11 @@ Este documento describe las futuras mejoras planeadas para el módulo base.
 
 ## v1.1.0 (Planeado)
 
-### Flujo de Aprobación
+### Motivo del Rechazo
 
-* **Descripción:** Añadir una capa de aprobación opcional al flujo de estados. Esto permitirá que los asistentes que lo necesiten puedan implementar un proceso de validación por parte de un supervisor antes de que el asiento contable sea registrado.
+* **Descripción:** Al hacer clic en el botón "Rechazar", en lugar de simplemente regresar el registro a "Borrador", se abrirá un `wizard` (ventana emergente) que pedirá al aprobador que escriba un motivo para el rechazo.
+* **Beneficio:** Este motivo se registrará en el chatter del asistente, proporcionando una retroalimentación clara al usuario que creó el registro y mejorando la comunicación y la trazabilidad.
 * **Consideraciones Técnicas:**
-  * Añadir nuevos estados al campo `state`, como `to_approve` (Para Aprobar) y `rejected` (Rechazado).
-  * Implementar la lógica de los botones "Enviar para Aprobación", "Aprobar" y "Rechazar".
-  * Introducir grupos de seguridad (`ir.rule`) para controlar qué usuarios tienen permiso para aprobar.
-  
+  * Crear un nuevo modelo `Transient` para el wizard con un campo de texto.
+  * Sobrescribir el método `action_reject` para que abra una acción de ventana de este wizard.
+  * El botón de confirmación del wizard escribirá el texto en el chatter (`message_post`) del asistente y luego cambiará su estado a `draft`.
