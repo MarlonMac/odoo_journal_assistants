@@ -10,7 +10,7 @@
                 <field name="partner_id"/>
                 <field name="category_id"/>
                 <field name="amount" sum="Total"/>
-                <field name="state"/>
+                <field name="state" widget="badge" decoration-success="state == 'posted'" decoration-info="state in ['draft', 'to_approve', 'approved']" decoration-muted="state == 'cancelled'"/>
             </tree>
         </field>
     </record>
