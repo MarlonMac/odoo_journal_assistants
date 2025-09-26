@@ -12,7 +12,7 @@
                 <field name="principal_amount"/>
                 <field name="interest_amount"/>
                 <field name="amount" sum="Total Pagado"/>
-                <field name="state"/>
+                <field name="state" widget="badge" decoration-success="state == 'posted'" decoration-info="state in ['draft', 'to_approve', 'approved']" decoration-muted="state == 'cancelled'"/>/>
             </tree>
         </field>
     </record>
