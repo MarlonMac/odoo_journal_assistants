@@ -36,8 +36,10 @@ class AssistantJournalEntryBase(models.AbstractModel):
     )   
 
     payment_ids = fields.One2many('account.payment', 'assistant_id', string='Pagos')
-    amount_paid = fields.Monetary(string='Monto Pagado', compute='_compute_payment_amounts', store=True)
-    amount_due = fields.Monetary(string='Saldo Pendiente', compute='_compute_payment_amounts', store=True)
+    # === FIX PARA MOSTRAR SALDOS EN LA VISTA SIN ALMACENARLOS ===
+    amount_paid = fields.Monetary(string='Monto Pagado', compute='_compute_payment_amounts', store=False)
+    amount_due = fields.Monetary(string='Saldo Pendiente', compute='_compute_payment_amounts', store=False)
+    # === FIN DEL FIX ===
 
     @api.depends('payment_ids.state', 'amount')
     def _compute_payment_amounts(self):
