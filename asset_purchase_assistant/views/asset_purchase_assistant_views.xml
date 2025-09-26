@@ -10,7 +10,7 @@
                 <field name="description"/>
                 <field name="supplier_id"/>
                 <field name="amount" sum="Total"/>
-                <field name="state"/>
+                <field name="state" widget="badge" decoration-success="state == 'posted'" decoration-info="state in ['draft', 'to_approve', 'approved']" decoration-muted="state == 'cancelled'"/>
             </tree>
         </field>
     </record>
@@ -21,6 +21,9 @@
         <field name="arch" type="xml">
             <form string="Asistente de Compra de Activo">
                 <header>
+                    <button name="action_register_payment" string="Registrar Pago" type="object" class="oe_highlight" 
+                            attrs="{'invisible': ['|', ('state', '!=', 'posted'), ('amount_due', '&lt;=', 0)]}"
+                            groups="account.group_account_invoice"/>
                     <button name="action_submit_for_approval" string="Enviar para Aprobación" type="object" class="oe_highlight" attrs="{'invisible': [('state', '!=', 'draft')]}"/>
                     <button name="action_approve" string="Aprobar" type="object" class="oe_highlight" attrs="{'invisible': [('state', '!=', 'to_approve')]}" groups="journal_entry_assistant_base.group_journal_assistant_approver"/>
                     <button name="action_reject" string="Rechazar" type="object" attrs="{'invisible': [('state', '!=', 'to_approve')]}" groups="journal_entry_assistant_base.group_journal_assistant_approver"/>
@@ -30,6 +33,8 @@
                     <field name="state" widget="statusbar" statusbar_visible="draft,to_approve,approved,posted"/>
                 </header>
                 <sheet>
+                    <widget name="web_ribbon" title="Pagado" bg_color="bg-success"
+                            attrs="{'invisible': ['|', ('state', '!=', 'posted'), ('amount_due', '!=', 0)]}"/>
                     <div class="oe_title">
                         <h1><field name="name" readonly="1"/></h1>
                     </div>
@@ -48,9 +53,23 @@
                             <field name="payable_account_id" attrs="{'invisible': [('is_pending_payment', '=', False)], 'required': [('is_pending_payment', '=', True)]}"/>
                             <field name="due_date" attrs="{'invisible': [('is_pending_payment', '=', False)]}"/>
                             <field name="move_id" attrs="{'invisible': [('move_id', '=', False)]}"/>
-                        </group>
+                            <field name="amount_due" invisible="1"/>
+                            </group>
                     </group>
-                </sheet>
+                    
+                    <notebook>
+                        <page string="Pagos" name="payments" attrs="{'invisible': [('is_pending_payment', '=', False)]}">
+                            <field name="payment_ids" readonly="1">
+                                <tree>
+                                    <field name="date"/>
+                                    <field name="journal_id"/>
+                                    <field name="amount"/>
+                                    <field name="state"/>
+                                </tree>
+                            </field>
+                        </page>
+                    </notebook>
+                    </sheet>
                 <div class="oe_chatter">
                     <field name="message_follower_ids"/>
                     <field name="activity_ids"/>
