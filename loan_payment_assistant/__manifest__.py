@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Asistente de Pago de Préstamos',
-    'version': '16.0.1.0.1',
+    'version': '16.0.1.1.0',
     'summary': 'Asistente para registrar pagos de préstamos, separando capital e intereses.',
     'description': """
         Simplifica el registro de pagos de cuotas de préstamos, generando un asiento

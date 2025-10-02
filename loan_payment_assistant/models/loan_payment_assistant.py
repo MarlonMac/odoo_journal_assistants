@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from odoo import models, fields, api, _
-from odoo.exceptions import UserError
+from odoo.exceptions import UserError, ValidationError
 
 class LoanPaymentAssistant(models.Model):
     _name = 'loan.payment.assistant'
@@ -14,8 +14,8 @@ class LoanPaymentAssistant(models.Model):
         required=True,
         domain="[('company_id', '=', company_id)]"
     )
-    principal_amount = fields.Float(string='Monto de Capital', required=True)
-    interest_amount = fields.Float(string='Monto de Intereses', required=True)
+    principal_amount = fields.Float(string='Monto de Capital', required=True, tracking=True)
+    interest_amount = fields.Float(string='Monto de Intereses', required=True, tracking=True)
     payment_journal_id = fields.Many2one(
         'account.journal', 
         string='Pagado desde (Diario)', 
@@ -31,7 +31,22 @@ class LoanPaymentAssistant(models.Model):
         for rec in self:
             rec.amount = rec.principal_amount + rec.interest_amount
 
-    # --- IMPLEMENTACIÓN DE MÉTODOS HEREDADOS ---
+    @api.constrains('principal_amount', 'loan_id')
+    def _check_principal_amount(self):
+        for rec in self:
+            if rec.loan_id and rec.principal_amount > rec.loan_id.outstanding_balance:
+                raise ValidationError(_(
+                    "El monto de capital a pagar (%.2f) no puede ser mayor que el saldo pendiente del préstamo (%.2f)."
+                ) % (rec.principal_amount, rec.loan_id.outstanding_balance))
+
+    def action_post(self):
+        res = super(LoanPaymentAssistant, self).action_post()
+        for rec in self:
+            if rec.loan_id:
+                new_balance = rec.loan_id.outstanding_balance - rec.principal_amount
+                rec.loan_id.write({'outstanding_balance': new_balance})
+        return res
+
     def _get_journal(self):
         self.ensure_one()
         return self.payment_journal_id
