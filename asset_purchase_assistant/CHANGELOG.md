@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.0.1] - 2025-10-02
+
+- **[Multi-Empresa]** El modelo `asset.category` se ha hecho específico por compañía.
+- **[Multi-Empresa]** Se han implementado reglas de seguridad y dominios para un funcionamiento correcto en entornos multi-empresa.
+
 ## [1.0.0] - 2025-09-24
 
 ### Added

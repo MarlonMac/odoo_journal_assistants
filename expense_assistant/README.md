@@ -14,6 +14,16 @@ Forma parte del "Ecosistema de Asistentes de Asientos Contables" y depende del m
 
 ## Configuración
 
+### Configuración Multi-Empresa
+
+**Este módulo es totalmente compatible con entornos multi-empresa.**
+
+- Las **Categorías de Gastos** son específicas para cada compañía. Al crear una nueva categoría, esta se asignará automáticamente a la compañía activa del usuario.
+- El asistente solo mostrará y permitirá seleccionar las categorías pertenecientes a la misma compañía del registro del asistente.
+- Las cuentas contables y diarios también son filtrados por compañía para garantizar la integridad de los datos.
+
+### Configuración de Cuentas
+
 1. **Crear Categorías de Gastos:** Antes de usar el asistente, un contador debe ir a **Asistentes de Diario > Configuración > Categorías de Gastos** y crear las categorías que la empresa necesita. **Es crucial asignar a cada categoría su cuenta contable de gasto correspondiente.**
 2. **Configurar Cuentas por Pagar:** Asegúrate de tener al menos una cuenta de tipo "Cuentas por Pagar" en tu plan contable para usar el flujo de reembolsos.
 

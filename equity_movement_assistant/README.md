@@ -13,6 +13,15 @@ Forma parte del "Ecosistema de Asistentes de Asientos Contables" y su objetivo e
 
 ## Configuración
 
+### Configuración Multi-Empresa
+
+**Este módulo es totalmente compatible con entornos multi-empresa.**
+
+- Las **Categorías de Movimientos de Patrimonio** son específicas para cada compañía.
+- El asistente filtra las categorías, cuentas y diarios por compañía para asegurar que las transacciones se registren en la entidad correcta.
+
+### Configuración de Cuentas
+
 1. **Crear Categorías:** Un contador debe ir a **Asistentes de Diario > Configuración > Categorías de Movimientos de Patrimonio**.
 2. Ahí, debe crear las categorías necesarias. Por ejemplo:
     - **Nombre:** "Declaración de Dividendos"

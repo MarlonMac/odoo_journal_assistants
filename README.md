@@ -1,6 +1,6 @@
 # Ecosistema de Asistentes de Asientos Contables para Odoo 16
 
-Este repositorio contiene una colección de módulos para Odoo 16 Community Edition diseñados para simplificar y estandarizar la creación de asientos de diario para tareas contables comunes.
+Este repositorio contiene una colección de módulos para Odoo 16 Community Edition diseñados para simplificar y estandarizar la creación de asientos de diario para tareas contables comunes. Los módulos ya están preparados para funcionar en un entorno multi-empresa.
 
 ## El Problema
 

@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.1.0]
+
+### Added
+
+- **[Multi-Empresa]** Se confirma que la arquitectura base es compatible con entornos multi-empresa.
+
 ## [1.0.0] - 2025-09-26
 
 ### Added

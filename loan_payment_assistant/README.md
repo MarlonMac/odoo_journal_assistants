@@ -13,6 +13,15 @@ Forma parte del "Ecosistema de Asistentes de Asientos Contables" y depende del m
 
 ## Configuración
 
+### Configuración Multi-Empresa
+
+**Este módulo es totalmente compatible con entornos multi-empresa.**
+
+- El registro de **Préstamos** es específico para cada compañía.
+- Al usar el asistente, solo se mostrarán los préstamos y diarios de pago que pertenezcan a la compañía seleccionada en el asistente.
+
+### Configuración de Cuentas
+
 1. **Crear Préstamos:** Antes de poder registrar un pago, un contador debe ir a **Asistentes de Diario > Configuración > Préstamos**.
 2. Ahí, debe crear un registro por cada préstamo que tenga la empresa, especificando:
     - El **Acreedor** (quién otorgó el préstamo).

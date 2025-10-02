@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.1] - 2025-10-02
+
+### Added
+
+- **[Multi-Empresa]** El modelo `loan.loan` ahora es específico por compañía.
+- **[Multi-Empresa]** Se han añadido dominios y reglas de seguridad para asegurar la integridad de los datos entre compañías.
+
 ## [1.0.0] - 2025-09-24
 
 ### Added

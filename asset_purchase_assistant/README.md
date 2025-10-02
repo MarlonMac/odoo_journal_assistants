@@ -24,6 +24,15 @@ El asistente está diseñado para interactuar con la funcionalidad de gestión d
 
 ## Configuración
 
+### Configuración Multi-Empresa
+
+**Este módulo es totalmente compatible con entornos multi-empresa.**
+
+* Las **Categorías de Activos** son específicas para cada compañía.
+* El asistente filtra automáticamente las categorías, cuentas y diarios para que coincidan con la compañía del registro, previniendo errores de asignación.
+
+### Configuración de Cuentas
+
 1. **Crear Categorías de Activos:** Antes de usar el asistente, un contador debe ir a **Asistentes de Diario > Configuración > Categorías de Activos**. Aquí debe crear las categorías necesarias y **asignar a cada una su cuenta contable de activo correspondiente.**
 2. **Configurar Cuentas por Pagar:** Asegúrate de tener al menos una cuenta de tipo "Cuentas por Pagar" en tu plan contable.
 
