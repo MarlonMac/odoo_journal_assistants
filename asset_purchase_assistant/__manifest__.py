@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Asistente de Compra de Activos',
-    'version': '16.0.1.0.0',
+    'version': '16.0.1.0.1',
     'summary': 'Asistente para registrar la compra de activos fijos.',
     'description': """
         Utiliza un formulario simplificado para registrar la compra de activos fijos
@@ -16,6 +16,7 @@
     ],
     'data': [
         'security/ir.model.access.csv',
+        'security/asset_purchase_assistant_security.xml',
         'data/sequence_data.xml',
         'views/asset_category_views.xml',
         'views/asset_purchase_assistant_views.xml',

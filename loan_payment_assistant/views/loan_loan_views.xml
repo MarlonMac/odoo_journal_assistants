@@ -9,6 +9,7 @@
                 <field name="partner_id"/>
                 <field name="principal_account_id"/>
                 <field name="interest_account_id"/>
+                <field name="company_id" groups="base.group_multi_company"/>
             </tree>
         </field>
     </record>
@@ -22,6 +23,7 @@
                     <group>
                         <field name="name"/>
                         <field name="partner_id"/>
+                        <field name="company_id"/>
                         <field name="principal_account_id"/>
                         <field name="interest_account_id"/>
                     </group>
@@ -29,7 +31,7 @@
             </form>
         </field>
     </record>
-
+    
     <record id="action_loan_loan" model="ir.actions.act_window">
         <field name="name">Préstamos</field>
         <field name="res_model">loan.loan</field>

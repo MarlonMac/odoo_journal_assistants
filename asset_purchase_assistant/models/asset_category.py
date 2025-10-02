@@ -10,8 +10,12 @@ class AssetCategory(models.Model):
         'account.account',
         string='Cuenta Contable de Activo',
         required=True,
-        # === INICIO DE LA CORRECCIÓN ===
-        domain="[('deprecated', '=', False)]",
-        # === FIN DE LA CORRECCIÓN ===
+        domain="[('deprecated', '=', False), ('company_id', '=', company_id)]",
         help="La cuenta contable que se usará para los activos de esta categoría."
+    )
+    company_id = fields.Many2one(
+        'res.company', 
+        string='Compañía', 
+        required=True, 
+        default=lambda self: self.env.company
     )

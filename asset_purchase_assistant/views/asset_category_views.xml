@@ -7,6 +7,7 @@
             <tree string="Categorías de Activos">
                 <field name="name"/>
                 <field name="asset_account_id"/>
+                <field name="company_id" groups="base.group_multi_company"/>
             </tree>
         </field>
     </record>
@@ -19,13 +20,14 @@
                 <sheet>
                     <group>
                         <field name="name"/>
+                        <field name="company_id"/>
                         <field name="asset_account_id"/>
                     </group>
                 </sheet>
             </form>
         </field>
     </record>
-
+    
     <record id="action_asset_category" model="ir.actions.act_window">
         <field name="name">Categorías de Activos</field>
         <field name="res_model">asset.category</field>

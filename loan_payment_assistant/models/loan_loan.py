@@ -12,13 +12,19 @@ class Loan(models.Model):
         'account.account', 
         string='Cuenta de Pasivo (Capital)', 
         required=True,
-        domain="[('deprecated', '=', False)]",
+        domain="[('deprecated', '=', False), ('company_id', '=', company_id)]",
         help="Cuenta donde se registra la deuda del préstamo. Ej: Préstamos Bancarios por Pagar."
     )
     interest_account_id = fields.Many2one(
         'account.account', 
         string='Cuenta de Gasto (Intereses)', 
         required=True,
-        domain="[('deprecated', '=', False)]",
+        domain="[('deprecated', '=', False), ('company_id', '=', company_id)]",
         help="Cuenta de gasto donde se registrarán los intereses de cada cuota."
+    )
+    company_id = fields.Many2one(
+        'res.company', 
+        string='Compañía', 
+        required=True, 
+        default=lambda self: self.env.company
     )

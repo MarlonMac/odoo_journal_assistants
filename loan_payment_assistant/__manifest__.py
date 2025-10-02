@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Asistente de Pago de Préstamos',
-    'version': '16.0.1.0.0',
+    'version': '16.0.1.0.1',
     'summary': 'Asistente para registrar pagos de préstamos, separando capital e intereses.',
     'description': """
         Simplifica el registro de pagos de cuotas de préstamos, generando un asiento
@@ -15,6 +15,7 @@
     ],
     'data': [
         'security/ir.model.access.csv',
+        'security/loan_payment_assistant_security.xml',
         'data/sequence_data.xml',
         'views/loan_loan_views.xml',
         'views/loan_payment_assistant_views.xml',

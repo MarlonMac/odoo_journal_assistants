@@ -8,10 +8,20 @@ class LoanPaymentAssistant(models.Model):
     _description = 'Asistente de Pago de Préstamos'
 
     # Campos específicos
-    loan_id = fields.Many2one('loan.loan', string='Préstamo a Pagar', required=True)
+    loan_id = fields.Many2one(
+        'loan.loan', 
+        string='Préstamo a Pagar', 
+        required=True,
+        domain="[('company_id', '=', company_id)]"
+    )
     principal_amount = fields.Float(string='Monto de Capital', required=True)
     interest_amount = fields.Float(string='Monto de Intereses', required=True)
-    payment_journal_id = fields.Many2one('account.journal', string='Pagado desde (Diario)', required=True, domain="[('type', 'in', ('bank', 'cash'))]")
+    payment_journal_id = fields.Many2one(
+        'account.journal', 
+        string='Pagado desde (Diario)', 
+        required=True, 
+        domain="[('type', 'in', ('bank', 'cash')), ('company_id', '=', company_id)]"
+    )
     
     # Heredamos el campo 'amount' pero lo hacemos computado y de solo lectura
     amount = fields.Float(string='Monto Total Pagado', compute='_compute_amount', store=True, readonly=True)

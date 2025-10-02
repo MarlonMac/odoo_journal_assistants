@@ -10,7 +10,12 @@ class AssetPurchaseAssistant(models.Model):
     # --- CAMPOS ---
     amount = fields.Float(string='Monto', required=True, states={'posted': [('readonly', True)], 'cancelled': [('readonly', True)]}, tracking=True)
     supplier_id = fields.Many2one('res.partner', string='Proveedor', required=True)
-    category_id = fields.Many2one('asset.category', string='Categoría de Activo', required=True)
+    category_id = fields.Many2one(
+        'asset.category', 
+        string='Categoría de Activo', 
+        required=True,
+        domain="[('company_id', '=', company_id)]"
+    )
     asset_account_id = fields.Many2one('account.account', string='Cuenta de Activo', related='category_id.asset_account_id', store=True, readonly=True)
     
     is_pending_payment = fields.Boolean(
@@ -25,12 +30,12 @@ class AssetPurchaseAssistant(models.Model):
     payable_account_id = fields.Many2one(
         'account.account', 
         string='Cuenta por Pagar',
-        domain="[('deprecated', '=', False)]"
+        domain="[('deprecated', '=', False), ('company_id', '=', company_id)]"
     )
     payment_journal_id = fields.Many2one(
         'account.journal', 
         string='Diario de Pago (Empresa)', 
-        domain="[('type', 'in', ('bank', 'cash'))]",
+        domain="[('type', 'in', ('bank', 'cash')), ('company_id', '=', company_id)]",
         help="Diario de la empresa utilizado para realizar el pago directo del activo."
     )
 

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Asistente de Gastos Corporativos',
-    'version': '16.0.1.0.0',
+    'version': '16.0.1.0.1',
     'summary': 'Asistente para registrar gastos, reembolsos y facturas por pagar.',
     'description': """
         Utiliza un formulario simplificado para registrar gastos corporativos,
@@ -15,10 +15,11 @@
         'hr'
     ],
     'data': [
+        'security/ir.model.access.csv',
+        'security/expense_assistant_security.xml',
+        'data/sequence_data.xml',
         'views/expense_category_views.xml',
         'views/expense_assistant_views.xml',
-        'security/ir.model.access.csv',
-        'data/sequence_data.xml',
     ],
     'installable': True,
     'application': True,

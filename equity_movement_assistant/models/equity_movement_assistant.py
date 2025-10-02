@@ -7,14 +7,24 @@ class EquityMovementAssistant(models.Model):
     _inherit = 'assistant.journal.entry.base'
     _description = 'Asistente de Movimientos de Patrimonio'
 
-    category_id = fields.Many2one('equity.movement.category', string='Categoría del Movimiento', required=True)
+    category_id = fields.Many2one(
+        'equity.movement.category', 
+        string='Categoría del Movimiento', 
+        required=True,
+        domain="[('company_id', '=', company_id)]"
+    )
     movement_type = fields.Selection(related='category_id.movement_type', string="Tipo", readonly=True, store=True)
     equity_account_id = fields.Many2one(related='category_id.equity_account_id', string="Cuenta de Patrimonio", readonly=True, store=True)
     liability_account_id = fields.Many2one(related='category_id.liability_account_id', readonly=True, store=True)
 
     partner_id = fields.Many2one('res.partner', string='Socio / Accionista', required=True)
     amount = fields.Float(string='Monto', required=True)
-    payment_journal_id = fields.Many2one('account.journal', string='Diario de Pago/Cobro', domain="[('type', 'in', ('bank', 'cash'))]", help="Diario donde ingresa el aporte de capital.")
+    payment_journal_id = fields.Many2one(
+        'account.journal', 
+        string='Diario de Pago/Cobro', 
+        domain="[('type', 'in', ('bank', 'cash')), ('company_id', '=', company_id)]", 
+        help="Diario donde ingresa el aporte de capital."
+    )
 
     # --- IMPLEMENTACIÓN DE MÉTODOS HEREDADOS ---
     def _get_journal(self):

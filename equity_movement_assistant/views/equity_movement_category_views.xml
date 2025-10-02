@@ -9,6 +9,7 @@
                 <field name="movement_type"/>
                 <field name="equity_account_id"/>
                 <field name="liability_account_id"/>
+                <field name="company_id" groups="base.group_multi_company"/>
             </tree>
         </field>
     </record>
@@ -22,15 +23,16 @@
                     <group>
                         <field name="name"/>
                         <field name="movement_type"/>
+                        <field name="company_id"/>
                         <field name="equity_account_id"/>
-                        <field name="liability_account_id" 
+                        <field name="liability_account_id"
                                attrs="{'invisible': [('movement_type', '!=', 'dividend')], 'required': [('movement_type', '=', 'dividend')]}"/>
                     </group>
                 </sheet>
             </form>
         </field>
     </record>
-
+    
     <record id="action_equity_movement_category" model="ir.actions.act_window">
         <field name="name">Categorías de Movimientos de Patrimonio</field>
         <field name="res_model">equity.movement.category</field>

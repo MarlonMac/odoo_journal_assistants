@@ -15,12 +15,18 @@ class EquityMovementCategory(models.Model):
         'account.account', 
         string='Cuenta de Patrimonio', 
         required=True,
-        domain="[('deprecated', '=', False)]",
+        domain="[('deprecated', '=', False), ('company_id', '=', company_id)]",
         help="La cuenta de patrimonio afectada. Ej: Capital Social, Utilidades Retenidas."
     )
     liability_account_id = fields.Many2one(
         'account.account', 
         string='Cuenta de Pasivo (Crédito para Dividendos)', 
-        domain="[('deprecated', '=', False)]",
+        domain="[('deprecated', '=', False), ('company_id', '=', company_id)]",
         help="La cuenta de deuda que se crea al declarar un dividendo. Ej: Dividendos por Pagar."
+    )
+    company_id = fields.Many2one(
+        'res.company', 
+        string='Compañía', 
+        required=True, 
+        default=lambda self: self.env.company
     )

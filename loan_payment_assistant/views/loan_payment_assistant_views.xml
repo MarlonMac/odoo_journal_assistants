@@ -12,7 +12,7 @@
                 <field name="principal_amount"/>
                 <field name="interest_amount"/>
                 <field name="amount" sum="Total Pagado"/>
-                <field name="state" widget="badge" decoration-success="state == 'posted'" decoration-info="state in ['draft', 'to_approve', 'approved']" decoration-muted="state == 'cancelled'"/>/>
+                <field name="state" widget="badge" decoration-success="state == 'posted'" decoration-info="state in ['draft', 'to_approve', 'approved']" decoration-muted="state == 'cancelled'"/>
             </tree>
         </field>
     </record>
@@ -38,6 +38,7 @@
                     <group>
                         <group>
                             <field name="loan_id" options="{'no_create': True, 'no_open': True}"/>
+                            <field name="company_id" invisible="1"/> <!-- Hidden but needed for multi-company environments -->
                             <field name="description"/>
                             <field name="principal_amount"/>
                             <field name="interest_amount"/>

@@ -44,6 +44,7 @@
                             <field name="supplier_id"/>
                             <field name="amount"/>
                             <field name="category_id"/>
+                            <field name="company_id" invisible="1"/> <!-- Hidden but needed for multi-company environments -->                            
                             <field name="asset_account_id"/>
                         </group>
                         <group>
