@@ -84,6 +84,7 @@
         <field name="name">Asistente de Compra de Activos</field>
         <field name="res_model">asset.purchase.assistant</field>
         <field name="view_mode">tree,form</field>
+        <field name="domain">[('company_id', '=', allowed_company_ids[0])]</field>        
         <field name="help" type="html"><p class="o_view_nocontent_smiling_face">Crea un nuevo registro de compra de activo.</p></field>
     </record>
 

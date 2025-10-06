@@ -77,6 +77,7 @@
         <field name="name">Asistente de Movimientos de Patrimonio</field>
         <field name="res_model">equity.movement.assistant</field>
         <field name="view_mode">tree,form</field>
+        <field name="domain">[('company_id', '=', allowed_company_ids[0])]</field>   
     </record>
 
     <menuitem id="menu_equity_movement_assistant"

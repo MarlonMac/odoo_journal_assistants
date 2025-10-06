@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Asistente de Compra de Activos',
-    'version': '16.0.1.0.1',
+    'version': '16.0.1.0.2',
     'summary': 'Asistente para registrar la compra de activos fijos.',
     'description': """
         Utiliza un formulario simplificado para registrar la compra de activos fijos
