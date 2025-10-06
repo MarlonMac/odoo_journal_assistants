@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_loan_reception_assistant_form" model="ir.ui.view">
+        <field name="name">loan.reception.assistant.form</field>
+        <field name="model">loan.reception.assistant</field>
+        <field name="arch" type="xml">
+            <form string="Asistente de Recepción de Préstamos">
+                 <header>
+                    <button name="action_post" string="Asentar" type="object" class="oe_highlight" data-hotkey="v" attrs="{'invisible': [('state', '=', 'posted')]}"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,posted"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="name" readonly="1"/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="loan_id"/>
+                            <field name="amount"/>
+                            <field name="company_id"/>
+                        </group>
+                        <group>
+                            <field name="reception_journal_id"/>
+                            <field name="date"/>
+                            <field name="description" placeholder="Ej: Recepción Préstamo Vehículo"/>
+                            
+                            <field name="attachment" widget="binary" filename="attachment_filename" required="1"/>
+                            <field name="attachment_filename" invisible="1"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+    
+    <record id="action_loan_reception_assistant" model="ir.actions.act_window">
+        <field name="name">Recepción de Préstamos</field>
+        <field name="res_model">loan.reception.assistant</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <menuitem id="menu_loan_reception_assistant"
+              name="Recepción de Préstamos"
+              parent="expense_assistant.menu_expense_assistant_root"
+              action="action_loan_reception_assistant"
+              sequence="21"/>
+</odoo>

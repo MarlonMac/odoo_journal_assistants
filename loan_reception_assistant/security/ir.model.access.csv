@@ -1,0 +1,4 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+"access_loan_reception_assistant_billing","Permisos para Asistente Recepción Préstamos (Facturación)",model_loan_reception_assistant,account.group_account_invoice,1,1,1,1
+"access_loan_reception_assistant_accountant","Permisos para Asistente Recepción Préstamos (Contador)",model_loan_reception_assistant,account.group_account_user,1,1,1,1
+"access_loan_reception_assistant_admin","Permisos para Asistente Recepción Préstamos (Admin)",model_loan_reception_assistant,base.group_system,1,1,1,1

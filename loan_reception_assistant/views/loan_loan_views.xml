@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_loan_loan_form_inherit" model="ir.ui.view">
+        <field name="name">loan.loan.form.inherit</field>
+        <field name="model">loan.loan</field>
+        <field name="inherit_id" ref="loan_payment_assistant.view_loan_loan_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//sheet" position="before">
+                <header>
+                    <button name="action_register_reception"
+                            string="Registrar Recepción"
+                            type="object"
+                            class="oe_highlight"
+                            attrs="{'invisible': [('state', '!=', 'draft')]}"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,active,paid"/>
+                </header>
+            </xpath>
+        </field>
+    </record>
+</odoo>
