@@ -47,7 +47,7 @@
                             <field name="category_id"/>
                             <field name="company_id" invisible="1"/> <!-- Hidden but needed for multi-company environments -->                            
                             <field name="expense_account_id"/>
-                            <field name="analytic_account_id"/>
+                            <!--   <field name="analytic_account_id"/> -->
                             <field name="move_id" attrs="{'invisible': [('move_id', '=', False)]}"/>
                             <field name="amount_due" invisible="1"/>
                             </group>

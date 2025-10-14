@@ -19,7 +19,7 @@ class ExpenseAssistant(models.Model):
     expense_account_id = fields.Many2one('account.account', string='Cuenta de Gasto', related='category_id.expense_account_id', store=True, readonly=True)
     payment_journal_id = fields.Many2one('account.journal', string='Diario de Pago (Empresa)', domain="[('type', 'in', ('bank', 'cash')), ('company_id', '=', company_id)]", help="Diario de la empresa utilizado para realizar el pago directo.")
     partner_id = fields.Many2one('res.partner', string='Proveedor/Contacto Original', states={'posted': [('readonly', True)], 'cancelled': [('readonly', True)]})
-    analytic_account_id = fields.Many2one('account.analytic.account', string='Cuenta Analítica / Sucursal', states={'posted': [('readonly', True)], 'cancelled': [('readonly', True)]})
+    # analytic_account_id = fields.Many2one('account.analytic.account', string='Cuenta Analítica / Sucursal', states={'posted': [('readonly', True)], 'cancelled': [('readonly', True)]})
 
     # --- VALIDACIONES ---
     @api.constrains('is_reimbursement', 'reimburse_partner_id', 'payable_account_id', 'payment_journal_id')
@@ -58,7 +58,7 @@ class ExpenseAssistant(models.Model):
             'debit': self.amount,
             'credit': 0.0,
             'partner_id': self.partner_id.id,
-            'analytic_account_id': self.analytic_account_id.id,
+            # 'analytic_account_id': self.analytic_account_id.id,
         })
 
         # Línea de Crédito (La Contrapartida)
