@@ -21,6 +21,10 @@ class ExpenseAssistant(models.Model):
     partner_id = fields.Many2one('res.partner', string='Proveedor/Contacto Original', states={'posted': [('readonly', True)], 'cancelled': [('readonly', True)]})
     # analytic_account_id = fields.Many2one('account.analytic.account', string='Cuenta Analítica / Sucursal', states={'posted': [('readonly', True)], 'cancelled': [('readonly', True)]})
 
+    # Campos para comprobante en pagos directos
+    attachment = fields.Binary(string="Comprobante de Pago Directo", help="Seleccione el archivo del comprobante para pagos directos.")
+    attachment_filename = fields.Char(string="Nombre del Comprobante")
+
     # --- VALIDACIONES ---
     @api.constrains('is_reimbursement', 'reimburse_partner_id', 'payable_account_id', 'payment_journal_id')
     def _check_reimbursement_fields(self):
@@ -31,6 +35,21 @@ class ExpenseAssistant(models.Model):
             else:
                 if not rec.payment_journal_id:
                     raise ValidationError(_('Para un pago directo, debe especificar el diario de pago.'))
+
+    # --- LÓGICA DE ASIENTOS ---
+    def action_post(self):
+        res = super(ExpenseAssistant, self).action_post()
+        for rec in self:
+            if not rec.is_reimbursement and rec.attachment and rec.move_id:
+                self.env['ir.attachment'].create({
+                    'name': rec.attachment_filename,
+                    'type': 'binary',
+                    'datas': rec.attachment,
+                    'res_model': 'account.move',
+                    'res_id': rec.move_id.id,
+                    'mimetype': 'application/octet-stream'
+                })
+        return res
 
     # --- IMPLEMENTACIÓN DE MÉTODOS HEREDADOS ---
     def _get_journal(self):
@@ -48,8 +67,10 @@ class ExpenseAssistant(models.Model):
         self.ensure_one()
         if self.amount <= 0:
             raise UserError(_('El monto del gasto debe ser positivo.'))
-        if not self.message_attachment_count > 0:
-            raise UserError(_('¡Adjunto Requerido! Debe adjuntar al menos un documento de respaldo.'))
+
+        # Adjunto requerido para ambos flujos
+        if not self.message_attachment_count > 0 and not self.attachment:
+            raise UserError(_('¡Adjunto Requerido! Debe adjuntar un documento de respaldo, ya sea en el chatter o en el campo de comprobante.'))
 
         # Línea de Débito (El Gasto)
         debit_line_vals = (0, 0, {
@@ -58,7 +79,6 @@ class ExpenseAssistant(models.Model):
             'debit': self.amount,
             'credit': 0.0,
             'partner_id': self.partner_id.id,
-            # 'analytic_account_id': self.analytic_account_id.id,
         })
 
         # Línea de Crédito (La Contrapartida)

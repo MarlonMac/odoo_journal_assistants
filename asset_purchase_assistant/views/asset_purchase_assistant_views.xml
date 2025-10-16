@@ -8,7 +8,7 @@
                 <field name="name"/>
                 <field name="date"/>
                 <field name="description"/>
-                <field name="supplier_id"/>
+                <field name="partner_id"/>
                 <field name="amount" sum="Total"/>
                 <field name="state" widget="badge" decoration-success="state == 'posted'" decoration-info="state in ['draft', 'to_approve', 'approved']" decoration-muted="state == 'cancelled'"/>
             </tree>
@@ -41,7 +41,7 @@
                     <group>
                         <group>
                             <field name="description"/>
-                            <field name="supplier_id"/>
+                            <field name="partner_id"/>
                             <field name="amount"/>
                             <field name="category_id"/>
                             <field name="company_id" invisible="1"/> <!-- Hidden but needed for multi-company environments -->                            
@@ -59,6 +59,14 @@
                     </group>
                     
                     <notebook>
+                        <page string="Cuentas Bancarias del Contacto" name="bank_accounts" attrs="{'invisible': [('partner_id', '=', False)]}">
+                            <field name="partner_bank_ids" readonly="1">
+                                <tree>
+                                    <field name="bank_id"/>
+                                    <field name="acc_number"/>
+                                </tree>
+                            </field>
+                        </page>
                         <page string="Pagos" name="payments" attrs="{'invisible': [('is_pending_payment', '=', False)]}">
                             <field name="payment_ids" readonly="1">
                                 <tree>
@@ -69,6 +77,7 @@
                                 </tree>
                             </field>
                         </page>
+                        
                     </notebook>
                     </sheet>
                 <div class="oe_chatter">

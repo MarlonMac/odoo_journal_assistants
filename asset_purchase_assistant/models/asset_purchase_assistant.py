@@ -9,7 +9,12 @@ class AssetPurchaseAssistant(models.Model):
 
     # --- CAMPOS ---
     amount = fields.Float(string='Monto', required=True, states={'posted': [('readonly', True)], 'cancelled': [('readonly', True)]}, tracking=True)
-    supplier_id = fields.Many2one('res.partner', string='Proveedor', required=True)
+    # CORRECCIÓN: Se elimina 'supplier_id'. Usaremos el campo 'partner_id' heredado del modelo base.
+    # supplier_id = fields.Many2one('res.partner', string='Proveedor', required=True)
+    
+    # Hacemos que el campo heredado 'partner_id' sea obligatorio para este modelo específico.
+    partner_id = fields.Many2one(required=True)
+
     category_id = fields.Many2one(
         'asset.category', 
         string='Categoría de Activo', 
@@ -74,7 +79,8 @@ class AssetPurchaseAssistant(models.Model):
             'account_id': self.asset_account_id.id,
             'debit': self.amount,
             'credit': 0.0,
-            'partner_id': self.supplier_id.id,
+            # CORRECCIÓN: Se reemplaza 'supplier_id' por 'partner_id'
+            'partner_id': self.partner_id.id,
         })
         
         credit_account_id = self.payable_account_id.id if self.is_pending_payment else self.payment_journal_id.default_account_id.id
@@ -84,7 +90,8 @@ class AssetPurchaseAssistant(models.Model):
             'account_id': credit_account_id,
             'debit': 0.0,
             'credit': self.amount,
-            'partner_id': self.supplier_id.id,
+            # CORRECCIÓN: Se reemplaza 'supplier_id' por 'partner_id'
+            'partner_id': self.partner_id.id,
         })
 
         return [debit_line_vals, credit_line_vals]

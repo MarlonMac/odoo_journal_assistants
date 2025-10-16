@@ -26,6 +26,10 @@ class AssistantJournalEntryBase(models.AbstractModel):
     move_id = fields.Many2one('account.move', string='Asiento Contable', readonly=True, copy=False)
     company_id = fields.Many2one('res.company', string='Compañía', required=True, default=lambda self: self.env.company)
 
+    # --- MODIFICACIÓN: AÑADIDOS CAMPOS FALTANTES DE SOLICITUDES ANTERIORES ---
+    partner_id = fields.Many2one('res.partner', string='Contacto')
+    partner_bank_ids = fields.One2many(related='partner_id.bank_ids', string="Cuentas Bancarias del Contacto")
+
     # --- CAMPOS DE PAGO ---
     # El currency_id se hereda de company_id para asegurar que los pagos se registren en la moneda correcta
     currency_id = fields.Many2one(
@@ -35,12 +39,58 @@ class AssistantJournalEntryBase(models.AbstractModel):
         store=True
     )   
 
-    payment_ids = fields.One2many('account.payment', 'assistant_id', string='Pagos')
+    # --- MODIFICACIÓN: 'payment_ids' AHORA ES COMPUTADO ---
+    # Debe ser computado para buscar los pagos usando la sintaxis del campo Reference.
+    payment_ids = fields.One2many('account.payment', compute='_compute_payments', string='Pagos')
+    
     # === FIX PARA MOSTRAR SALDOS EN LA VISTA SIN ALMACENARLOS ===
     amount_paid = fields.Monetary(string='Monto Pagado', compute='_compute_payment_amounts', store=False)
     amount_due = fields.Monetary(string='Saldo Pendiente', compute='_compute_payment_amounts', store=False)
     # === FIN DEL FIX ===
 
+    # --- MODIFICACIÓN: AÑADIDO CAMPO DE ESTADO DE PAGO DE SOLICITUD ANTERIOR ---
+    payment_status = fields.Selection([
+        ('not_payable', 'No Aplica Pago'),
+        ('unpaid', 'Pendiente de Pago'),
+        ('partial', 'Parcialmente Pagado'),
+        ('paid', 'Pagado'),
+    ], string='Estado de Pago', compute='_compute_payment_status', store=True, default='not_payable')
+
+    # --- MODIFICACIÓN: AÑADIDO MÉTODO _compute_payments ---
+    def _compute_payments(self):
+        """ Encuentra los pagos asociados a este asistente. """
+        for rec in self:
+            rec.payment_ids = self.env['account.payment'].search([
+                ('assistant_id', '=', f'{rec._name},{rec.id}')
+            ])
+
+    # --- MODIFICACIÓN: AÑADIDO MÉTODO _compute_payment_status ---
+    @api.depends('state', 'payment_ids.state', 'amount_due')
+    def _compute_payment_status(self):
+        for rec in self:
+            is_payable_model = hasattr(rec, 'is_reimbursement') or hasattr(rec, 'is_pending_payment')
+            is_payable_flag = False
+            if hasattr(rec, 'is_reimbursement'):
+                is_payable_flag = rec.is_reimbursement
+            elif hasattr(rec, 'is_pending_payment'):
+                is_payable_flag = rec.is_pending_payment
+
+            if rec.state != 'posted':
+                rec.payment_status = 'not_payable'
+            elif not is_payable_model or not is_payable_flag:
+                rec.payment_status = 'paid'
+            else:
+                amount_total = rec.amount if hasattr(rec, 'amount') else 0
+                # Se añade chequeo de 'payment_ids' para el estado 'unpaid'
+                if not rec.payment_ids and rec.amount_due == amount_total:
+                    rec.payment_status = 'unpaid'
+                elif rec.amount_due > 0:
+                    rec.payment_status = 'partial'
+                else:
+                    rec.payment_status = 'paid'
+
+    # --- MODIFICACIÓN: 'amount' AÑADIDO A @api.depends ---
+    # El 'amount' total es necesario para calcular el saldo pendiente
     @api.depends('payment_ids.state', 'amount')
     def _compute_payment_amounts(self):
         for rec in self:
@@ -59,6 +109,9 @@ class AssistantJournalEntryBase(models.AbstractModel):
             'context': {
                 'active_model': 'account.move',
                 'active_ids': self.move_id.ids,
+                # --- MODIFICACIÓN: Se pasa la referencia del asistente en el contexto ---
+                # Esto permitirá que el pago se vincule automáticamente al asistente.
+                'default_assistant_id': f'{self._name},{self.id}',
             },
             'target': 'new',
             'type': 'ir.actions.act_window',
@@ -84,17 +137,25 @@ class AssistantJournalEntryBase(models.AbstractModel):
         self.write({'state': 'draft'})
 
     def action_post(self):
-        self.ensure_one()
-        # === APROBACIÓN: Ahora solo se postea desde Aprobado ===
-        if self.state != 'approved':
-            raise UserError(_('Solo se pueden registrar documentos en estado Aprobado.'))
+        # --- MODIFICACIÓN: Iterar con 'for rec in self' ---
+        # (Tu código original usaba self.ensure_one(), pero iterar es más seguro)
+        for rec in self: 
+            # === APROBACIÓN: Ahora solo se postea desde Aprobado ===
+            if rec.state != 'approved':
+                raise UserError(_('Solo se pueden registrar documentos en estado Aprobado.'))
 
-        move_vals = self._prepare_move_vals()
-        move = self.env['account.move'].create(move_vals)
-        move.action_post()
-        
-        move.assistant_id = self
-        return self.write({'state': 'posted', 'move_id': move.id})
+            move_vals = rec._prepare_move_vals()
+            move = self.env['account.move'].create(move_vals)
+            move.action_post()
+            
+            # --- MODIFICACIÓN: Asignación correcta al campo Reference ---
+            # En lugar de 'move.assistant_id = self', usamos la sintaxis 'modelo,id'
+            move.assistant_id = f'{rec._name},{rec.id}'
+            
+            # --- MODIFICACIÓN: Se añade recálculo de payment_status ---
+            rec.write({'state': 'posted', 'move_id': move.id})
+            rec.invalidate_recordset(['payment_status'])
+        return True
 
     def action_cancel(self):
         for rec in self:
