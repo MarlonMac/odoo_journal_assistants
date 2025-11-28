@@ -19,7 +19,22 @@ class ExpenseAssistant(models.Model):
     expense_account_id = fields.Many2one('account.account', string='Cuenta de Gasto', related='category_id.expense_account_id', store=True, readonly=True)
     payment_journal_id = fields.Many2one('account.journal', string='Diario de Pago (Empresa)', domain="[('type', 'in', ('bank', 'cash')), ('company_id', '=', company_id)]", help="Diario de la empresa utilizado para realizar el pago directo.")
     partner_id = fields.Many2one('res.partner', string='Proveedor/Contacto Original', states={'posted': [('readonly', True)], 'cancelled': [('readonly', True)]})
-    # analytic_account_id = fields.Many2one('account.analytic.account', string='Cuenta Analítica / Sucursal', states={'posted': [('readonly', True)], 'cancelled': [('readonly', True)]})
+    
+    # --- NUEVOS CAMPOS: DOCUMENTOS DE SOPORTE ---
+    document_type = fields.Selection([
+        ('invoice', 'Factura'),
+        ('receipt', 'Recibo/Comprobante'),
+        ('forecast', 'Gasto Previsto (Borrador)')
+    ], string='Tipo de Documento', required=True, default='receipt', tracking=True, 
+       help="Seleccione 'Gasto Previsto' si aún no tiene el documento. Debe cambiarlo a Factura o Recibo antes de aprobar.")
+    
+    # Campos para Facturas (DTE)
+    dte_number = fields.Char(string='Número DTE', tracking=True)
+    dte_series = fields.Char(string='Serie DTE', tracking=True)
+    dte_authorization = fields.Char(string='Autorización DTE', tracking=True)
+    
+    # Campo para Recibos
+    document_number = fields.Char(string='Número de Documento', tracking=True)
 
     # Campos para comprobante en pagos directos
     attachment = fields.Binary(string="Comprobante de Pago Directo", help="Seleccione el archivo del comprobante para pagos directos.")
@@ -35,6 +50,31 @@ class ExpenseAssistant(models.Model):
             else:
                 if not rec.payment_journal_id:
                     raise ValidationError(_('Para un pago directo, debe especificar el diario de pago.'))
+
+    @api.constrains('state', 'document_type', 'dte_number', 'dte_series', 'dte_authorization', 'document_number')
+    def _check_document_requirements(self):
+        """ Valida que se tengan los datos completos antes de enviar a aprobación """
+        for rec in self:
+            # Validación 1: No se puede aprobar un gasto previsto
+            if rec.state in ['to_approve', 'approved', 'posted'] and rec.document_type == 'forecast':
+                raise ValidationError(_(
+                    'No se puede enviar a aprobación un "Gasto Previsto". '
+                    'Por favor, cambie el Tipo de Documento a "Factura" o "Recibo" e ingrese los datos correspondientes.'
+                ))
+            
+            # Validación 2: Integridad de datos para Facturas al aprobar
+            if rec.state in ['to_approve', 'approved', 'posted'] and rec.document_type == 'invoice':
+                if not rec.dte_number or not rec.dte_series or not rec.dte_authorization:
+                    raise ValidationError(_(
+                        'Para registrar una Factura, los campos "Número DTE", "Serie DTE" y "Autorización DTE" son obligatorios.'
+                    ))
+
+            # Validación 3: Integridad de datos para Recibos al aprobar
+            if rec.state in ['to_approve', 'approved', 'posted'] and rec.document_type == 'receipt':
+                if not rec.document_number:
+                    raise ValidationError(_(
+                        'Para registrar un Recibo/Comprobante, el campo "Número de Documento" es obligatorio.'
+                    ))
 
     # --- LÓGICA DE ASIENTOS ---
     def action_post(self):
@@ -72,9 +112,18 @@ class ExpenseAssistant(models.Model):
         if not self.message_attachment_count > 0 and not self.attachment:
             raise UserError(_('¡Adjunto Requerido! Debe adjuntar un documento de respaldo, ya sea en el chatter o en el campo de comprobante.'))
 
+        # Construcción de la referencia del asiento
+        ref_prefix = ""
+        if self.document_type == 'invoice':
+            ref_prefix = f"FAC {self.dte_series}-{self.dte_number}: "
+        elif self.document_type == 'receipt':
+            ref_prefix = f"DOC {self.document_number}: "
+        
+        full_ref = f"{ref_prefix}{self.description}"
+
         # Línea de Débito (El Gasto)
         debit_line_vals = (0, 0, {
-            'name': self.description,
+            'name': full_ref,
             'account_id': self.expense_account_id.id,
             'debit': self.amount,
             'credit': 0.0,
@@ -90,7 +139,7 @@ class ExpenseAssistant(models.Model):
             credit_partner_id = self.partner_id.id
             
         credit_line_vals = (0, 0, {
-            'name': self.description,
+            'name': full_ref,
             'account_id': credit_account_id,
             'debit': 0.0,
             'credit': self.amount,

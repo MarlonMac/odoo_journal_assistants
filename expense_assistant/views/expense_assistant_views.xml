@@ -48,6 +48,24 @@
                             <field name="payment_status" invisible="1"/>
                         </group>
                     </group>
+                    
+                    <group string="Documento de Soporte">
+                        <group>
+                            <field name="document_type" widget="radio" options="{'horizontal': true}"/>
+                        </group>
+                        <group>
+                            <field name="dte_series" attrs="{'invisible': [('document_type', '!=', 'invoice')], 'required': [('document_type', '=', 'invoice')]}"/>
+                            <field name="dte_number" attrs="{'invisible': [('document_type', '!=', 'invoice')], 'required': [('document_type', '=', 'invoice')]}"/>
+                            <field name="dte_authorization" attrs="{'invisible': [('document_type', '!=', 'invoice')], 'required': [('document_type', '=', 'invoice')]}"/>
+                            
+                            <field name="document_number" attrs="{'invisible': [('document_type', '!=', 'receipt')], 'required': [('document_type', '=', 'receipt')]}"/>
+                            
+                            <div class="text-muted" attrs="{'invisible': [('document_type', '!=', 'forecast')]}" colspan="2">
+                                <i class="fa fa-info-circle"/> Este gasto está en estado previsto. Debe seleccionar Factura o Recibo e ingresar los datos antes de enviar a aprobación.
+                            </div>
+                        </group>
+                    </group>
+
                     <group>
                         <group><field name="is_reimbursement"/></group>
                     </group>
@@ -106,6 +124,7 @@
             <tree string="Gastos Corporativos">
                 <field name="name"/>
                 <field name="date"/>
+                <field name="document_type"/>
                 <field name="description"/>
                 <field name="category_id"/>
                 <field name="partner_id"/>

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Asistente de Gastos Corporativos',
-    'version': '16.0.1.0.2',
+    'version': '16.0.1.1.0',
     'summary': 'Asistente para registrar gastos, reembolsos y facturas por pagar.',
     'description': """
         Utiliza un formulario simplificado para registrar gastos corporativos,
