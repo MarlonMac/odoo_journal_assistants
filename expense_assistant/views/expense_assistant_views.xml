@@ -137,12 +137,49 @@
             </tree>
         </field>
     </record>
+
+    <record id="view_expense_assistant_search" model="ir.ui.view">
+        <field name="name">expense.assistant.search</field>
+        <field name="model">expense.assistant</field>
+        <field name="arch" type="xml">
+            <search string="Búsqueda de Gastos">
+                <field name="name" string="Referencia"/>
+                <field name="description" string="Descripción"/>
+                <field name="partner_id" string="Proveedor/Contacto"/>
+                <field name="dte_number" string="Número DTE"/>
+                <field name="dte_series" string="Serie DTE"/>
+                <field name="dte_authorization" string="Autorización DTE"/>
+                <field name="document_number" string="Número de Documento"/>
+
+                <separator/>
+
+                <filter string="Mis Gastos" name="my_expenses" domain="[('create_uid', '=', uid)]"/>
+                <filter string="Borrador" name="draft" domain="[('state', '=', 'draft')]"/>
+                <filter string="Para Aprobar" name="to_approve" domain="[('state', '=', 'to_approve')]"/>
+                <separator/>
+                <filter string="Facturas" name="invoices" domain="[('document_type', '=', 'invoice')]"/>
+                <filter string="Recibos" name="receipts" domain="[('document_type', '=', 'receipt')]"/>
+
+                <group expand="0" string="Agrupar Por">
+                    <filter string="Categoría" name="group_category" domain="[]" context="{'group_by': 'category_id'}"/>
+                    <filter string="Proveedor/Contacto" name="group_partner" domain="[]" context="{'group_by': 'partner_id'}"/>
+                    <filter string="Empleado Responsable" name="group_employee" domain="[]" context="{'group_by': 'responsible_employee_ids'}"/>
+                    <filter string="Método de Pago Original" name="group_payment_method" domain="[]" context="{'group_by': 'payment_method'}"/>
+                    <filter string="Diario de Pago" name="group_payment_journal" domain="[]" context="{'group_by': 'payment_journal_id'}"/>
+                    <separator/>
+                    <filter string="Estado" name="group_state" domain="[]" context="{'group_by': 'state'}"/>
+                    <filter string="Mes" name="group_date" domain="[]" context="{'group_by': 'date:month'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
     
     <record id="action_expense_assistant" model="ir.actions.act_window">
         <field name="name">Asistente de Gastos</field>
         <field name="res_model">expense.assistant</field>
         <field name="view_mode">tree,form</field>
-        <field name="domain">[('company_id', '=', allowed_company_ids[0])]</field>        
+        <field name="domain">[('company_id', '=', allowed_company_ids[0])]</field>
+        <field name="search_view_id" ref="view_expense_assistant_search"/>
         <field name="help" type="html"><p class="o_view_nocontent_smiling_face">Crea un nuevo registro de gasto.</p></field>
     </record>
 
