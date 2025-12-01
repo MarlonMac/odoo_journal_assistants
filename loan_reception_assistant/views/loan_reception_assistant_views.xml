@@ -4,14 +4,18 @@
         <field name="name">loan.reception.assistant.tree</field>
         <field name="model">loan.reception.assistant</field>
         <field name="arch" type="xml">
-            <tree string="Recepciones de Préstamos">
+            <tree string="Recepciones de Préstamos" decoration-info="loan_status_display == 'active'" decoration-success="loan_status_display == 'paid'">
                 <field name="name"/>
                 <field name="date"/>
-                <field name="description"/>
-                <field name="loan_id"/>
-                <field name="reception_journal_id"/>
-                <field name="amount" sum="Total Recibido"/>
-                <field name="state" widget="badge" decoration-success="state == 'posted'" decoration-info="state in ['draft', 'to_approve', 'approved']" decoration-muted="state == 'cancelled'"/>
+                <field name="loan_id" string="Préstamo"/>
+                <field name="partner_id" string="Acreedor"/>
+                <field name="maturity_date" widget="remaining_days"/>
+                <field name="amount" sum="Monto Original"/>
+                <field name="loan_outstanding_balance" string="Saldo Pendiente"/>
+                <field name="loan_status_display" widget="badge" 
+                       decoration-success="loan_status_display == 'paid'" 
+                       decoration-warning="loan_status_display == 'active'"/>
+                <field name="state" widget="badge" decoration-muted="state == 'cancelled'"/>
             </tree>
         </field>
     </record>
@@ -23,44 +27,55 @@
             <form string="Asistente de Recepción de Préstamos">
                  <header>
                     <button name="action_submit_for_approval" string="Enviar para Aprobación" type="object" class="oe_highlight" attrs="{'invisible': [('state', '!=', 'draft')]}"/>
-                    
-                    <button name="action_approve" string="Aprobar" type="object" class="oe_highlight" 
-                            attrs="{'invisible': [('state', '!=', 'to_approve')]}" 
-                            groups="journal_entry_assistant_base.group_journal_assistant_approver"/>
-                    
-                    <button name="action_reject" string="Rechazar" type="object" 
-                            attrs="{'invisible': [('state', '!=', 'to_approve')]}" 
-                            groups="journal_entry_assistant_base.group_journal_assistant_approver"/>
-
-                    <button name="action_post" string="Registrar Contablemente" type="object" class="oe_highlight" 
-                            attrs="{'invisible': [('state', '!=', 'approved')]}" 
-                            groups="journal_entry_assistant_base.group_journal_assistant_approver"/>
-                    
+                    <button name="action_approve" string="Aprobar" type="object" class="oe_highlight" attrs="{'invisible': [('state', '!=', 'to_approve')]}" groups="journal_entry_assistant_base.group_journal_assistant_approver"/>
+                    <button name="action_reject" string="Rechazar" type="object" attrs="{'invisible': [('state', '!=', 'to_approve')]}" groups="journal_entry_assistant_base.group_journal_assistant_approver"/>
+                    <button name="action_post" string="Registrar Contablemente" type="object" class="oe_highlight" attrs="{'invisible': [('state', '!=', 'approved')]}" groups="journal_entry_assistant_base.group_journal_assistant_approver"/>
                     <button name="action_cancel" string="Cancelar/Revertir" type="object" confirm="¿Estás seguro? Se creará un asiento de reversión." attrs="{'invisible': [('state', '!=', 'posted')]}"/>
                     <button name="action_to_draft" string="Volver a Borrador" type="object" attrs="{'invisible': [('state', '!=', 'cancelled')]}"/>
-
                     <field name="state" widget="statusbar" statusbar_visible="draft,to_approve,approved,posted"/>
                 </header>
                 <sheet>
+                    <widget name="web_ribbon" title="Préstamo Pagado" bg_color="bg-success" attrs="{'invisible': [('loan_status_display', '!=', 'paid')]}"/>
+
                     <div class="oe_title">
                         <h1><field name="name" readonly="1"/></h1>
                     </div>
                     <group>
-                        <group>
-                            <field name="loan_id"/>
+                        <group string="Detalles del Préstamo">
+                            <field name="loan_id" options="{'no_create': True}"/>
+                            <field name="partner_id"/>
                             <field name="amount"/>
+                            <field name="loan_outstanding_balance" class="oe_inline" style="font-weight: bold; color: #d9534f;" attrs="{'invisible': [('state', '!=', 'posted')]}"/>
+                            <field name="loan_status_display" invisible="1"/>
                             <field name="company_id" invisible="1"/>
                         </group>
-                        <group>
+                        <group string="Condiciones y Registro">
                             <field name="reception_journal_id"/>
                             <field name="date"/>
+                            <field name="maturity_date" attrs="{'readonly': [('state', '=', 'posted')]}"/>
+                            <field name="payment_term_id" attrs="{'readonly': [('state', '=', 'posted')]}"/>
                             <field name="description" placeholder="Ej: Recepción Préstamo Vehículo"/>
-                            
                             <field name="attachment" widget="binary" filename="attachment_filename" required="1"/>
                             <field name="attachment_filename" invisible="1"/>
                             <field name="move_id" attrs="{'invisible': [('move_id', '=', False)]}"/>
                         </group>
                     </group>
+
+                    <notebook attrs="{'invisible': [('state', '!=', 'posted')]}">
+                        <page string="Estado de Cuenta / Pagos Realizados" name="loan_payments">
+                            <field name="loan_payment_ids" readonly="1">
+                                <tree>
+                                    <field name="date"/>
+                                    <field name="name"/>
+                                    <field name="description"/>
+                                    <field name="principal_amount" sum="Total Capital"/>
+                                    <field name="interest_amount" sum="Total Intereses"/>
+                                    <field name="amount" sum="Total Pagado"/>
+                                    <field name="state" widget="badge" decoration-success="state == 'posted'"/>
+                                </tree>
+                            </field>
+                        </page>
+                    </notebook>
                 </sheet>
                 <div class="oe_chatter">
                     <field name="message_follower_ids"/>
@@ -75,6 +90,7 @@
         <field name="name">Recepción de Préstamos</field>
         <field name="res_model">loan.reception.assistant</field>
         <field name="view_mode">tree,form</field>
+        <field name="domain">[('company_id', '=', allowed_company_ids[0])]</field>
     </record>
 
     <menuitem id="menu_loan_reception_assistant"

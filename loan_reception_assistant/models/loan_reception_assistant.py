@@ -7,22 +7,26 @@ class LoanReceptionAssistant(models.Model):
     _inherit = 'assistant.journal.entry.base'
     _description = 'Asistente de Recepción de Préstamos'
 
+    # Aplicamos states a loan_id para bloquearlo post-borrador
     loan_id = fields.Many2one(
         'loan.loan', 
         string='Préstamo', 
         required=True,
-        domain="[('state', '=', 'draft'), ('company_id', '=', company_id)]"
+        domain="[('state', '=', 'draft'), ('company_id', '=', company_id)]",
+        states={'posted': [('readonly', True)], 'cancelled': [('readonly', True)], 'approved': [('readonly', True)]}
     )
     amount = fields.Monetary(
         string="Monto a Recibir", 
         related='loan_id.original_amount', 
         readonly=True
     )
+    # Bloqueo de seguridad en diario
     reception_journal_id = fields.Many2one(
         'account.journal', 
         string='Recibido en (Diario)', 
         required=True, 
-        domain="[('type', 'in', ('bank', 'cash')), ('company_id', '=', company_id)]"
+        domain="[('type', 'in', ('bank', 'cash')), ('company_id', '=', company_id)]",
+        states={'posted': [('readonly', True)], 'cancelled': [('readonly', True)], 'approved': [('readonly', True)]}
     )
     currency_id = fields.Many2one(
         'res.currency', 
@@ -30,18 +34,49 @@ class LoanReceptionAssistant(models.Model):
         related='company_id.currency_id'
     )
     
-    # --- CAMPOS NUEVOS ---
-    attachment = fields.Binary(string="Comprobante", required=True, help="Seleccione el archivo del comprobante de la transacción.")
+    # Bloqueo de seguridad en adjunto
+    attachment = fields.Binary(
+        string="Comprobante", 
+        required=True, 
+        help="Seleccione el archivo del comprobante de la transacción.",
+        states={'posted': [('readonly', True)], 'cancelled': [('readonly', True)]}
+    )
     attachment_filename = fields.Char(string="Nombre del Comprobante")
-    # --------------------
+
+    # --- NUEVOS CAMPOS DE GESTIÓN (Con Seguridad de Estados) ---
+    maturity_date = fields.Date(
+        string="Fecha de Vencimiento", 
+        required=True, 
+        help="Fecha límite para pagar el préstamo.",
+        states={'posted': [('readonly', True)], 'cancelled': [('readonly', True)], 'approved': [('readonly', True)]}
+    )
+    payment_term_id = fields.Many2one(
+        'account.payment.term', 
+        string="Términos de Pago", 
+        required=True,
+        states={'posted': [('readonly', True)], 'cancelled': [('readonly', True)], 'approved': [('readonly', True)]}
+    )
+
+    # --- CAMPOS PARA DASHBOARD ---
+    loan_payment_ids = fields.One2many(related='loan_id.payment_assistant_ids', string="Tabla de Pagos")
+    loan_outstanding_balance = fields.Monetary(related='loan_id.outstanding_balance', string="Saldo Actual", store=False)
+    loan_status_display = fields.Selection([
+        ('active', 'Activo / Pendiente'),
+        ('paid', 'Pagado Totalmente')
+    ], string="Estado del Préstamo", compute='_compute_loan_status_display')
+
+    @api.depends('loan_id.outstanding_balance', 'loan_id.state')
+    def _compute_loan_status_display(self):
+        for rec in self:
+            if rec.loan_id.state == 'paid' or rec.loan_id.outstanding_balance <= 0.01:
+                rec.loan_status_display = 'paid'
+            else:
+                rec.loan_status_display = 'active'
 
     def action_post(self):
-        # Primero, ejecuta la lógica base (crear y asentar el move)
         res = super(LoanReceptionAssistant, self).action_post()
-        
-        # Luego, ejecuta la lógica específica de este asistente
         for rec in self:
-            # Adjuntar el comprobante al asiento contable
+            # Adjuntar comprobante
             if rec.attachment and rec.move_id:
                 self.env['ir.attachment'].create({
                     'name': rec.attachment_filename,
@@ -52,10 +87,14 @@ class LoanReceptionAssistant(models.Model):
                     'mimetype': 'application/octet-stream'
                 })
             
-            # Cambiar el estado del préstamo
+            # Actualizar y Activar Préstamo
             if rec.loan_id:
-                rec.loan_id.write({'state': 'active'})
-        
+                rec.loan_id.write({
+                    'state': 'active',
+                    'date_start': rec.date, # Registramos la fecha de inicio real
+                    'maturity_date': rec.maturity_date,
+                    'payment_term_id': rec.payment_term_id.id
+                })
         return res
 
     def _get_journal(self):
@@ -67,7 +106,6 @@ class LoanReceptionAssistant(models.Model):
         if self.amount <= 0:
             raise UserError(_('El monto a recibir debe ser positivo.'))
 
-        # Débito: Ingresa el dinero al banco
         debit_line = (0, 0, {
             'name': self.description,
             'account_id': self.reception_journal_id.default_account_id.id,
@@ -76,7 +114,6 @@ class LoanReceptionAssistant(models.Model):
             'partner_id': self.loan_id.partner_id.id,
         })
         
-        # Crédito: Se crea la deuda en la cuenta de pasivo
         credit_line = (0, 0, {
             'name': self.description,
             'account_id': self.loan_id.principal_account_id.id,

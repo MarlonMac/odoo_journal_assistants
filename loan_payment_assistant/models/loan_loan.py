@@ -11,6 +11,11 @@ class Loan(models.Model):
     original_amount = fields.Monetary(string="Monto Original", required=True, tracking=True)
     outstanding_balance = fields.Monetary(string="Saldo Pendiente", tracking=True)
     
+    # --- NUEVOS CAMPOS DE GESTIÓN ---
+    maturity_date = fields.Date(string="Fecha de Vencimiento", tracking=True, help="Fecha límite para cancelar el préstamo.")
+    payment_term_id = fields.Many2one('account.payment.term', string="Términos de Pago", help="Condiciones de pago acordadas (ej. 30 días, Mensual, etc.)")
+    # -------------------------------
+
     principal_account_id = fields.Many2one(
         'account.account', 
         string='Cuenta de Pasivo (Capital)', 
@@ -40,6 +45,13 @@ class Loan(models.Model):
     payment_assistant_ids = fields.One2many('loan.payment.assistant', 'loan_id', string='Pagos del Asistente')
     payment_count = fields.Integer(string="Pagos Registrados", compute='_compute_payment_count')
 
+    # Campo de estado (originalmente añadido por herencia en reception, pero útil tenerlo aquí si se usa standalone)
+    state = fields.Selection([
+        ('draft', 'Borrador'),
+        ('active', 'Activo'),
+        ('paid', 'Pagado'),
+    ], string='Estado', default='draft', tracking=True)
+
     @api.depends('payment_assistant_ids')
     def _compute_payment_count(self):
         for loan in self:
@@ -47,7 +59,8 @@ class Loan(models.Model):
 
     @api.onchange('original_amount')
     def _onchange_original_amount(self):
-        self.outstanding_balance = self.original_amount
+        if not self.outstanding_balance:
+            self.outstanding_balance = self.original_amount
 
     def action_view_payments(self):
         self.ensure_one()
