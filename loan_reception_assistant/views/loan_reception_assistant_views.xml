@@ -1,5 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
+    <record id="view_loan_reception_assistant_tree" model="ir.ui.view">
+        <field name="name">loan.reception.assistant.tree</field>
+        <field name="model">loan.reception.assistant</field>
+        <field name="arch" type="xml">
+            <tree string="Recepciones de Préstamos">
+                <field name="name"/>
+                <field name="date"/>
+                <field name="description"/>
+                <field name="loan_id"/>
+                <field name="reception_journal_id"/>
+                <field name="amount" sum="Total Recibido"/>
+                <field name="state" widget="badge" decoration-success="state == 'posted'" decoration-info="state in ['draft', 'to_approve', 'approved']" decoration-muted="state == 'cancelled'"/>
+            </tree>
+        </field>
+    </record>
+
     <record id="view_loan_reception_assistant_form" model="ir.ui.view">
         <field name="name">loan.reception.assistant.form</field>
         <field name="model">loan.reception.assistant</field>

@@ -26,6 +26,10 @@ class LoanPaymentAssistant(models.Model):
     # Heredamos el campo 'amount' pero lo hacemos computado y de solo lectura
     amount = fields.Float(string='Monto Total Pagado', compute='_compute_amount', store=True, readonly=True)
 
+    # --- CAMPOS PARA COMPROBANTE ---
+    attachment = fields.Binary(string="Comprobante de Pago", help="Adjunte el comprobante de la transferencia o depósito.")
+    attachment_filename = fields.Char(string="Nombre del Comprobante")
+
     @api.depends('principal_amount', 'interest_amount')
     def _compute_amount(self):
         for rec in self:
@@ -40,11 +44,26 @@ class LoanPaymentAssistant(models.Model):
                 ) % (rec.principal_amount, rec.loan_id.outstanding_balance))
 
     def action_post(self):
+        # Ejecuta la lógica base para crear el asiento
         res = super(LoanPaymentAssistant, self).action_post()
+        
         for rec in self:
+            # Actualizar saldo del préstamo
             if rec.loan_id:
                 new_balance = rec.loan_id.outstanding_balance - rec.principal_amount
                 rec.loan_id.write({'outstanding_balance': new_balance})
+            
+            # Lógica de adjuntos: Vincular el archivo al asiento contable creado (move_id)
+            if rec.attachment and rec.move_id:
+                self.env['ir.attachment'].create({
+                    'name': rec.attachment_filename or _('Comprobante de Pago'),
+                    'type': 'binary',
+                    'datas': rec.attachment,
+                    'res_model': 'account.move',
+                    'res_id': rec.move_id.id,
+                    'mimetype': 'application/octet-stream'
+                })
+
         return res
 
     def _get_journal(self):

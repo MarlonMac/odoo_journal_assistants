@@ -38,7 +38,7 @@
                     <group>
                         <group>
                             <field name="loan_id" options="{'no_create': True, 'no_open': True}"/>
-                            <field name="company_id" invisible="1"/> <!-- Hidden but needed for multi-company environments -->
+                            <field name="company_id" invisible="1"/>
                             <field name="description"/>
                             <field name="principal_amount"/>
                             <field name="interest_amount"/>
@@ -46,7 +46,10 @@
                         <group>
                             <field name="date"/>
                             <field name="payment_journal_id"/>
-                            <field name="amount"/>
+                            <field name="amount"/>                            
+                            <field name="attachment" widget="binary" filename="attachment_filename"/>
+                            <field name="attachment_filename" invisible="1"/>
+                            
                             <field name="move_id" attrs="{'invisible': [('move_id', '=', False)]}"/>
                         </group>
                     </group>
