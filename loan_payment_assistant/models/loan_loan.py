@@ -13,6 +13,9 @@ class Loan(models.Model):
     original_amount = fields.Monetary(string="Monto Original", required=True, tracking=True)
     outstanding_balance = fields.Monetary(string="Saldo Pendiente", tracking=True)
     
+    # NUEVO: Campo de Progreso para el Dashboard
+    progress = fields.Float(string="Progreso Pagado", compute='_compute_progress', store=False)
+
     # Campos de Gestión
     date_start = fields.Date(string="Fecha de Inicio", tracking=True)
     maturity_date = fields.Date(string="Fecha de Vencimiento", tracking=True, help="Fecha límite para cancelar el préstamo.")
@@ -62,24 +65,18 @@ class Loan(models.Model):
         for loan in self:
             loan.payment_count = len(loan.payment_assistant_ids)
 
-    # --- REFINAMIENTO 3: Lógica Términos vs Fecha ---
-    @api.onchange('payment_term_id', 'date_start')
-    def _onchange_payment_term(self):
-        """ 
-        Calcula automáticamente la fecha de vencimiento si se selecciona un término de pago.
-        Si no hay término, deja la fecha libre para edición manual.
-        """
+    # NUEVO: Lógica de cálculo de progreso
+    @api.depends('original_amount', 'outstanding_balance')
+    def _compute_progress(self):
         for rec in self:
-            if rec.payment_term_id and rec.date_start:
-                # Usamos el motor de cálculo de Odoo
-                computed_terms = rec.payment_term_id.compute(rec.original_amount, date_ref=rec.date_start)
-                if computed_terms:
-                    # La lista computed_terms contiene tuplas (fecha, monto)
-                    # Tomamos la fecha del último plazo
-                    final_date = computed_terms[-1][0]
-                    rec.maturity_date = final_date
+            if rec.original_amount > 0:
+                paid = rec.original_amount - rec.outstanding_balance
+                # Evitamos negativos por si acaso
+                if paid < 0: paid = 0
+                rec.progress = (paid / rec.original_amount) * 100
+            else:
+                rec.progress = 0.0
 
-    # FIX DE INICIALIZACIÓN (Create)
     @api.model_create_multi
     def create(self, vals_list):
         for vals in vals_list:
@@ -102,3 +99,12 @@ class Loan(models.Model):
             'domain': [('id', 'in', self.payment_assistant_ids.ids)],
             'context': dict(self._context, create=False)
         }
+    
+    @api.onchange('payment_term_id', 'date_start')
+    def _onchange_payment_term(self):
+        for rec in self:
+            if rec.payment_term_id and rec.date_start:
+                computed_terms = rec.payment_term_id.compute(rec.original_amount, date_ref=rec.date_start)
+                if computed_terms:
+                    final_date = computed_terms[-1][0]
+                    rec.maturity_date = final_date

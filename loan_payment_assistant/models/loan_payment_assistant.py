@@ -43,10 +43,8 @@ class LoanPaymentAssistant(models.Model):
         domain="[('type', 'in', ('bank', 'cash')), ('company_id', '=', company_id)]"
     )
     
-    # Heredamos el campo 'amount' pero lo hacemos computado y de solo lectura
     amount = fields.Float(string='Monto Total Pagado', compute='_compute_amount', store=True, readonly=True)
 
-    # --- CAMPOS PARA COMPROBANTE ---
     attachment = fields.Binary(
         string="Comprobante de Pago", 
         states=READONLY_STATES,
@@ -62,22 +60,23 @@ class LoanPaymentAssistant(models.Model):
     @api.constrains('principal_amount', 'loan_id')
     def _check_principal_amount(self):
         for rec in self:
-            if rec.loan_id and rec.principal_amount > rec.loan_id.outstanding_balance:
-                raise ValidationError(_(
-                    "El monto de capital a pagar (%.2f) no puede ser mayor que el saldo pendiente del préstamo (%.2f)."
-                ) % (rec.principal_amount, rec.loan_id.outstanding_balance))
+            # Validamos solo si el préstamo está activo para permitir correcciones
+            if rec.loan_id and rec.loan_id.state == 'active':
+                # Usamos una pequeña tolerancia para flotantes
+                if rec.principal_amount > (rec.loan_id.outstanding_balance + 0.01):
+                    raise ValidationError(_(
+                        "El monto de capital a pagar (%.2f) no puede ser mayor que el saldo pendiente del préstamo (%.2f)."
+                    ) % (rec.principal_amount, rec.loan_id.outstanding_balance))
 
     def action_post(self):
         # Ejecuta la lógica base para crear el asiento
-        res = super(LoanPaymentAssistant, self).action_post()
+        super(LoanPaymentAssistant, self).action_post()
         
+        # Variable para el efecto visual
+        rainbow_effect = False
+
         for rec in self:
-            # Actualizar saldo del préstamo (RESTA)
-            if rec.loan_id:
-                new_balance = rec.loan_id.outstanding_balance - rec.principal_amount
-                rec.loan_id.write({'outstanding_balance': new_balance})
-            
-            # Lógica de adjuntos: Vincular el archivo al asiento contable creado (move_id)
+            # Lógica de adjuntos
             if rec.attachment and rec.move_id:
                 self.env['ir.attachment'].create({
                     'name': rec.attachment_filename or _('Comprobante de Pago'),
@@ -88,24 +87,56 @@ class LoanPaymentAssistant(models.Model):
                     'mimetype': 'application/octet-stream'
                 })
 
-        return res
+            # ACTUALIZACIÓN DE SALDO Y ESTADO
+            if rec.loan_id:
+                new_balance = rec.loan_id.outstanding_balance - rec.principal_amount
+                
+                # Tolerancia para errores de redondeo (menos de 1 centavo se considera 0)
+                if new_balance <= 0.01:
+                    new_balance = 0.0
+                    # CAMBIO DE ESTADO AUTOMÁTICO
+                    rec.loan_id.write({
+                        'outstanding_balance': new_balance,
+                        'state': 'paid'
+                    })
+                    # GAMIFICACIÓN: ¡Préstamo Pagado!
+                    rainbow_effect = {
+                        'effect': {
+                            'fadeout': 'slow',
+                            'message': '¡Felicidades! El préstamo ha sido pagado totalmente.',
+                            'img_url': '/web/static/img/smile.svg',
+                            'type': 'rainbow_man',
+                        }
+                    }
+                else:
+                    rec.loan_id.write({'outstanding_balance': new_balance})
 
-    # --- NUEVA LÓGICA: REVERSIÓN DE SALDOS ---
+        # Si se completó un préstamo, retornamos el efecto para la UI
+        if rainbow_effect:
+            return rainbow_effect
+        
+        return True
+
     def action_cancel(self):
-        # 1. Identificar registros que están efectivamente afectando el saldo (estado 'posted')
+        # 1. Identificar registros confirmados antes de cancelar
         posted_records = self.filtered(lambda r: r.state == 'posted')
         
-        # 2. Llamar al método padre (esto cambiará el estado a 'cancelled' y revertirá el asiento)
+        # 2. Llamar al método padre
         res = super(LoanPaymentAssistant, self).action_cancel()
         
-        # 3. Revertir el impacto en el saldo del préstamo (SUMA)
+        # 3. Revertir saldo y estado
         for rec in posted_records:
             if rec.loan_id:
-                # Devolvemos el capital al saldo pendiente
                 new_balance = rec.loan_id.outstanding_balance + rec.principal_amount
-                rec.loan_id.write({'outstanding_balance': new_balance})
+                vals = {'outstanding_balance': new_balance}
                 
-                # Opcional: Dejar un log en el chatter del préstamo
+                # Si el préstamo estaba pagado y ahora tiene deuda, lo reactivamos
+                if rec.loan_id.state == 'paid' and new_balance > 0.01:
+                    vals['state'] = 'active'
+                    rec.loan_id.message_post(body=_("El préstamo se ha reactivado debido a la cancelación de un pago."))
+                
+                rec.loan_id.write(vals)
+                
                 rec.loan_id.message_post(body=_(
                     "El pago %s fue cancelado. Se restauró el saldo por un monto de %s."
                 ) % (rec.name, rec.principal_amount))
