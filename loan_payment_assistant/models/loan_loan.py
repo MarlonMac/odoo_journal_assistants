@@ -65,7 +65,7 @@ class Loan(models.Model):
         for loan in self:
             loan.payment_count = len(loan.payment_assistant_ids)
 
-    # NUEVO: Lógica de cálculo de progreso
+    # Lógica de cálculo de progreso
     @api.depends('original_amount', 'outstanding_balance')
     def _compute_progress(self):
         for rec in self:
@@ -88,6 +88,26 @@ class Loan(models.Model):
     def _onchange_original_amount(self):
         if not self.outstanding_balance:
             self.outstanding_balance = self.original_amount
+
+    # PROTECCIÓN CONTRA BORRADO
+    def unlink(self):
+        for rec in self:
+            # Regla 1: No borrar si ya se ha pagado algo (Integridad Financiera)
+            # Usamos una pequeña tolerancia de 0.01 por temas de flotantes
+            if rec.outstanding_balance < (rec.original_amount - 0.01):
+                raise UserError(_(
+                    'No se puede eliminar el préstamo "%s" porque ya tiene pagos procesados (su saldo es menor al monto original). '
+                    'Por favor, cancele o revierta los pagos asociados primero.'
+                ) % rec.name)
+            
+            # Regla 2: No borrar si está activo o pagado (Integridad de Estado)
+            if rec.state not in ['draft']:
+                raise UserError(_(
+                    'Solo se pueden eliminar préstamos en estado "Borrador". '
+                    'El préstamo "%s" está en estado "%s".'
+                ) % (rec.name, rec.state))
+                
+        return super(Loan, self).unlink()
 
     def action_view_payments(self):
         self.ensure_one()

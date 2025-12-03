@@ -67,6 +67,17 @@ class LoanPaymentAssistant(models.Model):
                     raise ValidationError(_(
                         "El monto de capital a pagar (%.2f) no puede ser mayor que el saldo pendiente del préstamo (%.2f)."
                     ) % (rec.principal_amount, rec.loan_id.outstanding_balance))
+    
+    # CONSTRAINT DE FECHAS
+    @api.constrains('date', 'loan_id')
+    def _check_payment_date(self):
+        for rec in self:
+            if rec.loan_id and rec.loan_id.date_start and rec.date:
+                if rec.date < rec.loan_id.date_start:
+                    raise ValidationError(_(
+                        "Error de Coherencia Temporal:\n"
+                        "La fecha del pago (%s) no puede ser anterior a la fecha de inicio del préstamo (%s)."
+                    ) % (rec.date, rec.loan_id.date_start))
 
     def action_post(self):
         # Ejecuta la lógica base para crear el asiento
