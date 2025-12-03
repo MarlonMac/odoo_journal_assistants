@@ -27,6 +27,7 @@
                     records_draggable="0"
                     quick_create="0"
                     group_create="0">
+                
                 <field name="name"/>
                 <field name="partner_id"/>
                 <field name="outstanding_balance"/>
@@ -56,7 +57,6 @@
                                     </div>
                                 </div>
                             </div>
-
                             <div class="o_kanban_record_body">
                                 <div class="row mb-2">
                                     <div class="col-7">
@@ -69,7 +69,6 @@
                                         <field name="state" widget="label_selection" options="{'classes': {'draft': 'default', 'active': 'success', 'paid': 'muted'}}"/>
                                     </div>
                                 </div>
-
                                 <div attrs="{'invisible': [('state', '=', 'draft')]}" class="mt-2">
                                     <div class="d-flex justify-content-between align-items-center mb-1">
                                         <span class="text-muted small">Progreso de Pago</span>
@@ -83,7 +82,6 @@
                                     </div>
                                 </div>
                             </div>
-
                             <div class="o_kanban_record_bottom mt-3 pt-2 border-top">
                                 <div class="oe_kanban_bottom_left">
                                     <t t-if="record.maturity_date.raw_value and record.state.raw_value != 'paid'">
@@ -108,6 +106,12 @@
         <field name="arch" type="xml">
             <form string="Préstamo">
                 <header>
+                    <button name="action_register_payment" 
+                            string="Registrar Pago de Cuota" 
+                            type="object" 
+                            class="oe_highlight" 
+                            attrs="{'invisible': [('state', '!=', 'active')]}"/>
+                            
                     <field name="state" widget="statusbar" statusbar_visible="draft,active,paid"/>
                 </header>
                 <sheet>
@@ -172,7 +176,7 @@
         <field name="view_mode">kanban,tree,form</field>
     </record>
 
-    <menuitem id="menu_loan_category"
+     <menuitem id="menu_loan_category"
               name="Gestión de Préstamos"
               parent="expense_assistant.menu_expense_assistant_root"
               sequence="30"/>

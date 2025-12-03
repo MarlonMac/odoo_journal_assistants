@@ -99,6 +99,20 @@ class Loan(models.Model):
             'domain': [('id', 'in', self.payment_assistant_ids.ids)],
             'context': dict(self._context, create=False)
         }
+
+    def action_register_payment(self):
+        self.ensure_one()
+        return {
+            'name': 'Registrar Pago de Cuota',
+            'type': 'ir.actions.act_window',
+            'res_model': 'loan.payment.assistant',
+            'view_mode': 'form',
+            'target': 'current',
+            'context': {
+                'default_loan_id': self.id,
+                'default_payment_journal_id': False
+            }
+        }
     
     @api.onchange('payment_term_id', 'date_start')
     def _onchange_payment_term(self):
