@@ -88,5 +88,5 @@
     </record>
 
     <menuitem id="menu_loan_category" name="Gestión de Préstamos" parent="expense_assistant.menu_expense_assistant_root" sequence="30"/>
-    <menuitem id="menu_loan_loan" name="Contratos (Hub)" parent="menu_loan_category" action="action_loan_loan" sequence="1"/>
+    <menuitem id="menu_loan_loan" name="Préstamos (Hub)" parent="menu_loan_category" action="action_loan_loan" sequence="1"/>
 </odoo>

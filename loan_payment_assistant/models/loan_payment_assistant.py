@@ -72,7 +72,7 @@ class LoanPaymentAssistant(models.Model):
         res = super(LoanPaymentAssistant, self).action_post()
         
         for rec in self:
-            # Actualizar saldo del préstamo
+            # Actualizar saldo del préstamo (RESTA)
             if rec.loan_id:
                 new_balance = rec.loan_id.outstanding_balance - rec.principal_amount
                 rec.loan_id.write({'outstanding_balance': new_balance})
@@ -88,6 +88,28 @@ class LoanPaymentAssistant(models.Model):
                     'mimetype': 'application/octet-stream'
                 })
 
+        return res
+
+    # --- NUEVA LÓGICA: REVERSIÓN DE SALDOS ---
+    def action_cancel(self):
+        # 1. Identificar registros que están efectivamente afectando el saldo (estado 'posted')
+        posted_records = self.filtered(lambda r: r.state == 'posted')
+        
+        # 2. Llamar al método padre (esto cambiará el estado a 'cancelled' y revertirá el asiento)
+        res = super(LoanPaymentAssistant, self).action_cancel()
+        
+        # 3. Revertir el impacto en el saldo del préstamo (SUMA)
+        for rec in posted_records:
+            if rec.loan_id:
+                # Devolvemos el capital al saldo pendiente
+                new_balance = rec.loan_id.outstanding_balance + rec.principal_amount
+                rec.loan_id.write({'outstanding_balance': new_balance})
+                
+                # Opcional: Dejar un log en el chatter del préstamo
+                rec.loan_id.message_post(body=_(
+                    "El pago %s fue cancelado. Se restauró el saldo por un monto de %s."
+                ) % (rec.name, rec.principal_amount))
+        
         return res
 
     def _get_journal(self):
