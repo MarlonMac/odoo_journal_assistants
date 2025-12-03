@@ -72,7 +72,7 @@
     </record>
 
     <menuitem id="menu_loan_payment_assistant"
-              name="Registrar Pago de Cuota"
+              name="Pagos"
               parent="menu_loan_category"
               action="action_loan_payment_assistant"
               sequence="20"/>

@@ -94,7 +94,7 @@
     </record>
 
     <menuitem id="menu_loan_reception_assistant"
-              name="Registrar Desembolso"
+              name="Registrar Recepción"
               parent="loan_payment_assistant.menu_loan_category"
               action="action_loan_reception_assistant"
               sequence="10"/>
