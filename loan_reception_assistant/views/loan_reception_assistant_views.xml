@@ -4,18 +4,13 @@
         <field name="name">loan.reception.assistant.tree</field>
         <field name="model">loan.reception.assistant</field>
         <field name="arch" type="xml">
-            <tree string="Recepciones de Préstamos" decoration-info="loan_status_display == 'active'" decoration-success="loan_status_display == 'paid'">
+            <tree string="Recepciones de Préstamos">
                 <field name="name"/>
                 <field name="date"/>
                 <field name="loan_id" string="Préstamo"/>
                 <field name="partner_id" string="Acreedor"/>
-                <field name="maturity_date" widget="remaining_days"/>
-                <field name="amount" sum="Monto Original"/>
-                <field name="loan_outstanding_balance" string="Saldo Pendiente"/>
-                <field name="loan_status_display" widget="badge" 
-                       decoration-success="loan_status_display == 'paid'" 
-                       decoration-warning="loan_status_display == 'active'"/>
-                <field name="state" widget="badge" decoration-muted="state == 'cancelled'"/>
+                <field name="amount" sum="Monto Recibido"/>
+                <field name="state" widget="badge" decoration-muted="state == 'cancelled'" decoration-success="state == 'posted'"/>
             </tree>
         </field>
     </record>
@@ -35,8 +30,6 @@
                     <field name="state" widget="statusbar" statusbar_visible="draft,to_approve,approved,posted"/>
                 </header>
                 <sheet>
-                    <widget name="web_ribbon" title="Préstamo Pagado" bg_color="bg-success" attrs="{'invisible': [('loan_status_display', '!=', 'paid')]}"/>
-
                     <div class="oe_title">
                         <h1><field name="name" readonly="1"/></h1>
                     </div>
@@ -45,8 +38,6 @@
                             <field name="loan_id" options="{'no_create': True}"/>
                             <field name="partner_id"/>
                             <field name="amount"/>
-                            <field name="loan_outstanding_balance" class="oe_inline" style="font-weight: bold; color: #d9534f;" attrs="{'invisible': [('state', '!=', 'posted')]}"/>
-                            <field name="loan_status_display" invisible="1"/>
                             <field name="company_id" invisible="1"/>
                         </group>
                         <group string="Condiciones y Registro">
@@ -60,23 +51,7 @@
                             <field name="move_id" attrs="{'invisible': [('move_id', '=', False)]}"/>
                         </group>
                     </group>
-
-                    <notebook attrs="{'invisible': [('state', '!=', 'posted')]}">
-                        <page string="Estado de Cuenta / Pagos Realizados" name="loan_payments">
-                            <field name="loan_payment_ids" readonly="1">
-                                <tree>
-                                    <field name="date"/>
-                                    <field name="name"/>
-                                    <field name="description"/>
-                                    <field name="principal_amount" sum="Total Capital"/>
-                                    <field name="interest_amount" sum="Total Intereses"/>
-                                    <field name="amount" sum="Total Pagado"/>
-                                    <field name="state" widget="badge" decoration-success="state == 'posted'"/>
-                                </tree>
-                            </field>
-                        </page>
-                    </notebook>
-                </sheet>
+                    </sheet>
                 <div class="oe_chatter">
                     <field name="message_follower_ids"/>
                     <field name="activity_ids"/>
@@ -94,7 +69,7 @@
     </record>
 
     <menuitem id="menu_loan_reception_assistant"
-              name="Registrar Recepción"
+              name="Registrar Desembolso"
               parent="loan_payment_assistant.menu_loan_category"
               action="action_loan_reception_assistant"
               sequence="10"/>

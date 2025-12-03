@@ -7,34 +7,33 @@ class LoanReceptionAssistant(models.Model):
     _inherit = 'assistant.journal.entry.base'
     _description = 'Asistente de Recepción de Préstamos'
 
-    # Seguridad: Solo editable en borrador
-    READONLY_STATES = {
-        'to_approve': [('readonly', True)], 
-        'approved': [('readonly', True)], 
-        'posted': [('readonly', True)], 
-        'cancelled': [('readonly', True)]
-    }
-
-    # Aplicamos states a loan_id para bloquearlo post-borrador
     loan_id = fields.Many2one(
         'loan.loan', 
         string='Préstamo', 
         required=True,
         domain="[('state', '=', 'draft'), ('company_id', '=', company_id)]",
-        states=READONLY_STATES
+        states={'posted': [('readonly', True)], 'cancelled': [('readonly', True)], 'approved': [('readonly', True)]}
     )
+
+    partner_id = fields.Many2one(
+        'res.partner', 
+        related='loan_id.partner_id', 
+        string='Acreedor',
+        readonly=True,
+        store=True
+    )
+
     amount = fields.Monetary(
         string="Monto a Recibir", 
         related='loan_id.original_amount', 
         readonly=True
     )
-    # Bloqueo de seguridad en diario
     reception_journal_id = fields.Many2one(
         'account.journal', 
         string='Recibido en (Diario)', 
         required=True, 
         domain="[('type', 'in', ('bank', 'cash')), ('company_id', '=', company_id)]",
-        states=READONLY_STATES
+        states={'posted': [('readonly', True)], 'cancelled': [('readonly', True)], 'approved': [('readonly', True)]}
     )
     currency_id = fields.Many2one(
         'res.currency', 
@@ -42,44 +41,30 @@ class LoanReceptionAssistant(models.Model):
         related='company_id.currency_id'
     )
     
-    # Bloqueo de seguridad en adjunto
     attachment = fields.Binary(
         string="Comprobante", 
         required=True, 
         help="Seleccione el archivo del comprobante de la transacción.",
-        states=READONLY_STATES
+        states={'posted': [('readonly', True)], 'cancelled': [('readonly', True)]}
     )
-    attachment_filename = fields.Char(string="Nombre del Comprobante", states=READONLY_STATES)
+    attachment_filename = fields.Char(string="Nombre del Comprobante")
 
-    # --- NUEVOS CAMPOS DE GESTIÓN (Con Seguridad de Estados) ---
+    # Campos de Input para configurar el préstamo al momento del desembolso
     maturity_date = fields.Date(
         string="Fecha de Vencimiento", 
         required=True, 
         help="Fecha límite para pagar el préstamo.",
-        states=READONLY_STATES
+        states={'posted': [('readonly', True)], 'cancelled': [('readonly', True)], 'approved': [('readonly', True)]}
     )
     payment_term_id = fields.Many2one(
         'account.payment.term', 
         string="Términos de Pago", 
         required=True,
-        states=READONLY_STATES
+        states={'posted': [('readonly', True)], 'cancelled': [('readonly', True)], 'approved': [('readonly', True)]}
     )
 
-    # --- CAMPOS PARA DASHBOARD ---
-    loan_payment_ids = fields.One2many(related='loan_id.payment_assistant_ids', string="Tabla de Pagos")
-    loan_outstanding_balance = fields.Monetary(related='loan_id.outstanding_balance', string="Saldo Actual", store=False)
-    loan_status_display = fields.Selection([
-        ('active', 'Activo / Pendiente'),
-        ('paid', 'Pagado Totalmente')
-    ], string="Estado del Préstamo", compute='_compute_loan_status_display')
-
-    @api.depends('loan_id.outstanding_balance', 'loan_id.state')
-    def _compute_loan_status_display(self):
-        for rec in self:
-            if rec.loan_id.state == 'paid' or rec.loan_id.outstanding_balance <= 0.01:
-                rec.loan_status_display = 'paid'
-            else:
-                rec.loan_status_display = 'active'
+    # --- ELIMINADOS: Campos de visualización de estado y pagos (Se movieron al padre) ---
+    # loan_payment_ids, loan_outstanding_balance, loan_status_display, _compute_loan_status_display
 
     def action_post(self):
         res = super(LoanReceptionAssistant, self).action_post()
@@ -99,7 +84,7 @@ class LoanReceptionAssistant(models.Model):
             if rec.loan_id:
                 rec.loan_id.write({
                     'state': 'active',
-                    'date_start': rec.date, # Registramos la fecha de inicio real
+                    'date_start': rec.date,
                     'maturity_date': rec.maturity_date,
                     'payment_term_id': rec.payment_term_id.id
                 })

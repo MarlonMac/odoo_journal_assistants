@@ -1,35 +1,39 @@
 # -*- coding: utf-8 -*-
 from odoo import models, fields, api
+from datetime import timedelta
 
 class Loan(models.Model):
     _name = 'loan.loan'
     _description = 'Registro de Préstamo'
+    _inherit = ['mail.thread', 'mail.activity.mixin']
 
-    name = fields.Char(string='Nombre o Referencia del Préstamo', required=True)
-    partner_id = fields.Many2one('res.partner', string='Acreedor', required=True, help="Entidad o persona que otorgó el préstamo.")
+    name = fields.Char(string='Nombre o Referencia del Préstamo', required=True, tracking=True)
+    partner_id = fields.Many2one('res.partner', string='Acreedor', required=True, help="Entidad o persona que otorgó el préstamo.", tracking=True)
     
     original_amount = fields.Monetary(string="Monto Original", required=True, tracking=True)
     outstanding_balance = fields.Monetary(string="Saldo Pendiente", tracking=True)
     
-    # --- NUEVOS CAMPOS DE GESTIÓN ---
+    # Campos de Gestión
+    date_start = fields.Date(string="Fecha de Inicio", tracking=True)
     maturity_date = fields.Date(string="Fecha de Vencimiento", tracking=True, help="Fecha límite para cancelar el préstamo.")
-    payment_term_id = fields.Many2one('account.payment.term', string="Términos de Pago", help="Condiciones de pago acordadas (ej. 30 días, Mensual, etc.)")
-    # -------------------------------
+    payment_term_id = fields.Many2one('account.payment.term', string="Términos de Pago", help="Condiciones de pago acordadas.")
 
+    # Cuentas
     principal_account_id = fields.Many2one(
         'account.account', 
         string='Cuenta de Pasivo (Capital)', 
         required=True,
         domain="[('deprecated', '=', False), ('company_id', '=', company_id)]",
-        help="Cuenta donde se registra la deuda del préstamo. Ej: Préstamos Bancarios por Pagar."
+        help="Cuenta donde se registra la deuda del préstamo."
     )
     interest_account_id = fields.Many2one(
         'account.account', 
         string='Cuenta de Gasto (Intereses)', 
         required=True,
         domain="[('deprecated', '=', False), ('company_id', '=', company_id)]",
-        help="Cuenta de gasto donde se registrarán los intereses de cada cuota."
+        help="Cuenta de gasto para intereses."
     )
+    
     company_id = fields.Many2one(
         'res.company', 
         string='Compañía', 
@@ -42,10 +46,11 @@ class Loan(models.Model):
         related='company_id.currency_id', 
         store=True
     )
+    
+    # Relaciones
     payment_assistant_ids = fields.One2many('loan.payment.assistant', 'loan_id', string='Pagos del Asistente')
     payment_count = fields.Integer(string="Pagos Registrados", compute='_compute_payment_count')
 
-    # Campo de estado (originalmente añadido por herencia en reception, pero útil tenerlo aquí si se usa standalone)
     state = fields.Selection([
         ('draft', 'Borrador'),
         ('active', 'Activo'),
@@ -56,6 +61,31 @@ class Loan(models.Model):
     def _compute_payment_count(self):
         for loan in self:
             loan.payment_count = len(loan.payment_assistant_ids)
+
+    # --- REFINAMIENTO 3: Lógica Términos vs Fecha ---
+    @api.onchange('payment_term_id', 'date_start')
+    def _onchange_payment_term(self):
+        """ 
+        Calcula automáticamente la fecha de vencimiento si se selecciona un término de pago.
+        Si no hay término, deja la fecha libre para edición manual.
+        """
+        for rec in self:
+            if rec.payment_term_id and rec.date_start:
+                # Usamos el motor de cálculo de Odoo
+                computed_terms = rec.payment_term_id.compute(rec.original_amount, date_ref=rec.date_start)
+                if computed_terms:
+                    # La lista computed_terms contiene tuplas (fecha, monto)
+                    # Tomamos la fecha del último plazo
+                    final_date = computed_terms[-1][0]
+                    rec.maturity_date = final_date
+
+    # FIX DE INICIALIZACIÓN (Create)
+    @api.model_create_multi
+    def create(self, vals_list):
+        for vals in vals_list:
+            if 'original_amount' in vals and vals.get('outstanding_balance', 0) == 0:
+                vals['outstanding_balance'] = vals['original_amount']
+        return super(Loan, self).create(vals_list)
 
     @api.onchange('original_amount')
     def _onchange_original_amount(self):

@@ -96,7 +96,7 @@ class AssistantJournalEntryBase(models.AbstractModel):
                 ('assistant_id', '=', f'{rec._name},{rec.id}')
             ])
 
-    @api.depends('state', 'payment_ids.state', 'amount_due')
+    @api.depends('state') # Quitamos payment_ids.state
     def _compute_payment_status(self):
         for rec in self:
             is_payable_model = hasattr(rec, 'is_reimbursement') or hasattr(rec, 'is_pending_payment')
@@ -112,7 +112,7 @@ class AssistantJournalEntryBase(models.AbstractModel):
                 rec.payment_status = 'paid'
             else:
                 amount_total = rec.amount if hasattr(rec, 'amount') else 0
-                # Se añade chequeo de 'payment_ids' para el estado 'unpaid'
+                # Dependemos del valor calculado en _compute_payment_amounts
                 if not rec.payment_ids and rec.amount_due == amount_total:
                     rec.payment_status = 'unpaid'
                 elif rec.amount_due > 0:
@@ -121,11 +121,11 @@ class AssistantJournalEntryBase(models.AbstractModel):
                     rec.payment_status = 'paid'
 
     # El 'amount' total es necesario para calcular el saldo pendiente
-    @api.depends('payment_ids.state', 'amount')
+    @api.depends('amount') # Quitamos payment_ids.state
     def _compute_payment_amounts(self):
         for rec in self:
-            # Esta lógica funcionará siempre que el modelo hijo tenga un campo llamado 'amount'
             amount_total = rec.amount if hasattr(rec, 'amount') else 0
+            # Forzamos la lectura de los pagos en tiempo real
             paid = sum(rec.payment_ids.filtered(lambda p: p.state == 'posted').mapped('amount'))
             rec.amount_paid = paid
             rec.amount_due = amount_total - paid
@@ -146,13 +146,13 @@ class AssistantJournalEntryBase(models.AbstractModel):
             'type': 'ir.actions.act_window',
         }
 
-    @api.model
-    def create(self, vals):
-        # Usamos el _name del modelo hijo para buscar la secuencia correcta
+    @api.model_create_multi
+    def create(self, vals_list):
         sequence_code = self._name
-        if vals.get('name', _('Nuevo')) == _('Nuevo'):
-            vals['name'] = self.env['ir.sequence'].next_by_code(sequence_code) or _('Nuevo')
-        return super(AssistantJournalEntryBase, self).create(vals)
+        for vals in vals_list:
+            if vals.get('name', _('Nuevo')) == _('Nuevo'):
+                vals['name'] = self.env['ir.sequence'].next_by_code(sequence_code) or _('Nuevo')
+        return super(AssistantJournalEntryBase, self).create(vals_list)
 
     # --- LÓGICA DE BOTONES (ACCIONES) ---
     def action_submit_for_approval(self):

@@ -7,11 +7,12 @@
             <tree string="Préstamos">
                 <field name="name"/>
                 <field name="partner_id"/>
+                <field name="date_start"/>
+                <field name="maturity_date" widget="remaining_days"/>
                 <field name="original_amount"/>
                 <field name="outstanding_balance"/>
-                <field name="principal_account_id"/>
-                <field name="interest_account_id"/>
                 <field name="company_id" groups="base.group_multi_company"/>
+                <field name="state" widget="badge" decoration-info="state == 'draft'" decoration-success="state == 'active'" decoration-muted="state == 'paid'"/>
             </tree>
         </field>
     </record>
@@ -21,7 +22,12 @@
         <field name="model">loan.loan</field>
         <field name="arch" type="xml">
             <form string="Préstamo">
+                <header>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,active,paid"/>
+                </header>
                 <sheet>
+                    <widget name="web_ribbon" title="Pagado" bg_color="bg-success" attrs="{'invisible': [('state', '!=', 'paid')]}"/>
+
                     <div class="oe_button_box" name="button_box">
                         <button name="action_view_payments"
                             type="object"
@@ -35,18 +41,42 @@
                         <h1><field name="name" placeholder="Ej: Préstamo Bancario #12345"/></h1>
                     </div>
                     <group>
-                        <group>
-                            <field name="partner_id"/>
-                            <field name="original_amount"/>
-                            <field name="outstanding_balance"/>
+                        <group string="Estado Financiero">
+                            <field name="partner_id" attrs="{'readonly': [('state', '!=', 'draft')]}"/>
+                            <field name="original_amount" attrs="{'readonly': [('state', '!=', 'draft')]}"/>
+                            <field name="outstanding_balance" force_save="1" readonly="1" style="font-weight: bold; font-size: 1.2em; color: #d9534f;" />
                         </group>
-                        <group>
-                            <field name="company_id"/>
-                            <field name="principal_account_id"/>
-                            <field name="interest_account_id"/>
+                        <group string="Condiciones">
+                            <field name="date_start" attrs="{'readonly': [('state', '!=', 'draft')]}"/>
+                            <field name="payment_term_id" attrs="{'readonly': [('state', '!=', 'draft')]}"/>
+                            <field name="maturity_date" attrs="{'readonly': [('state', '!=', 'draft')]}"/>
+                        </group>
+                        <group string="Configuración Contable">
+                            <field name="company_id" attrs="{'readonly': [('state', '!=', 'draft')]}"/>
+                            <field name="principal_account_id" attrs="{'readonly': [('state', '!=', 'draft')]}"/>
+                            <field name="interest_account_id" attrs="{'readonly': [('state', '!=', 'draft')]}"/>
                         </group>
                     </group>
+
+                    <notebook>
+                        <page string="Historial de Pagos" name="payments">
+                            <field name="payment_assistant_ids" readonly="1">
+                                <tree decoration-muted="state == 'cancelled'">
+                                    <field name="date"/>
+                                    <field name="name"/>
+                                    <field name="principal_amount" sum="Total Capital"/>
+                                    <field name="interest_amount" sum="Total Intereses"/>
+                                    <field name="amount" sum="Total Pagado"/>
+                                    <field name="state" widget="badge" decoration-success="state == 'posted'"/>
+                                </tree>
+                            </field>
+                        </page>
+                    </notebook>
                 </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="message_ids"/>
+                </div>
             </form>
         </field>
     </record>
@@ -57,13 +87,6 @@
         <field name="view_mode">tree,form</field>
     </record>
 
-    <menuitem id="menu_loan_category"
-              name="Gestión de Préstamos"
-              parent="expense_assistant.menu_expense_assistant_root"
-              sequence="30"/> 
-              <menuitem id="menu_loan_loan"
-              name="Préstamos (Hub)"
-              parent="menu_loan_category"
-              action="action_loan_loan"
-              sequence="1"/>
+    <menuitem id="menu_loan_category" name="Gestión de Préstamos" parent="expense_assistant.menu_expense_assistant_root" sequence="30"/>
+    <menuitem id="menu_loan_loan" name="Contratos (Hub)" parent="menu_loan_category" action="action_loan_loan" sequence="1"/>
 </odoo>
