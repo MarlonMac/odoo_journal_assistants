@@ -72,8 +72,8 @@
     </record>
 
     <menuitem id="menu_loan_payment_assistant"
-              name="Pago de Préstamos"
-              parent="expense_assistant.menu_expense_assistant_root"
+              name="Registrar Pago de Cuota"
+              parent="menu_loan_category"
               action="action_loan_payment_assistant"
-              sequence="30"/>
+              sequence="20"/>
 </odoo>

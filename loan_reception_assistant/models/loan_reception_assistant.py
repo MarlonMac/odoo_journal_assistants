@@ -7,13 +7,21 @@ class LoanReceptionAssistant(models.Model):
     _inherit = 'assistant.journal.entry.base'
     _description = 'Asistente de Recepción de Préstamos'
 
+    # Seguridad: Solo editable en borrador
+    READONLY_STATES = {
+        'to_approve': [('readonly', True)], 
+        'approved': [('readonly', True)], 
+        'posted': [('readonly', True)], 
+        'cancelled': [('readonly', True)]
+    }
+
     # Aplicamos states a loan_id para bloquearlo post-borrador
     loan_id = fields.Many2one(
         'loan.loan', 
         string='Préstamo', 
         required=True,
         domain="[('state', '=', 'draft'), ('company_id', '=', company_id)]",
-        states={'posted': [('readonly', True)], 'cancelled': [('readonly', True)], 'approved': [('readonly', True)]}
+        states=READONLY_STATES
     )
     amount = fields.Monetary(
         string="Monto a Recibir", 
@@ -26,7 +34,7 @@ class LoanReceptionAssistant(models.Model):
         string='Recibido en (Diario)', 
         required=True, 
         domain="[('type', 'in', ('bank', 'cash')), ('company_id', '=', company_id)]",
-        states={'posted': [('readonly', True)], 'cancelled': [('readonly', True)], 'approved': [('readonly', True)]}
+        states=READONLY_STATES
     )
     currency_id = fields.Many2one(
         'res.currency', 
@@ -39,22 +47,22 @@ class LoanReceptionAssistant(models.Model):
         string="Comprobante", 
         required=True, 
         help="Seleccione el archivo del comprobante de la transacción.",
-        states={'posted': [('readonly', True)], 'cancelled': [('readonly', True)]}
+        states=READONLY_STATES
     )
-    attachment_filename = fields.Char(string="Nombre del Comprobante")
+    attachment_filename = fields.Char(string="Nombre del Comprobante", states=READONLY_STATES)
 
     # --- NUEVOS CAMPOS DE GESTIÓN (Con Seguridad de Estados) ---
     maturity_date = fields.Date(
         string="Fecha de Vencimiento", 
         required=True, 
         help="Fecha límite para pagar el préstamo.",
-        states={'posted': [('readonly', True)], 'cancelled': [('readonly', True)], 'approved': [('readonly', True)]}
+        states=READONLY_STATES
     )
     payment_term_id = fields.Many2one(
         'account.payment.term', 
         string="Términos de Pago", 
         required=True,
-        states={'posted': [('readonly', True)], 'cancelled': [('readonly', True)], 'approved': [('readonly', True)]}
+        states=READONLY_STATES
     )
 
     # --- CAMPOS PARA DASHBOARD ---

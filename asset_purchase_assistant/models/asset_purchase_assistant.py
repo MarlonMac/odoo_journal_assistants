@@ -7,18 +7,30 @@ class AssetPurchaseAssistant(models.Model):
     _inherit = 'assistant.journal.entry.base'
     _description = 'Asistente de Compra de Activos'
 
+    # Seguridad: Solo editable en borrador
+    READONLY_STATES = {
+        'to_approve': [('readonly', True)], 
+        'approved': [('readonly', True)], 
+        'posted': [('readonly', True)], 
+        'cancelled': [('readonly', True)]
+    }
+
     # --- CAMPOS ---
-    amount = fields.Float(string='Monto', required=True, states={'posted': [('readonly', True)], 'cancelled': [('readonly', True)]}, tracking=True)
-    # CORRECCIÓN: Se elimina 'supplier_id'. Usaremos el campo 'partner_id' heredado del modelo base.
-    # supplier_id = fields.Many2one('res.partner', string='Proveedor', required=True)
+    amount = fields.Float(
+        string='Monto', 
+        required=True, 
+        states=READONLY_STATES, 
+        tracking=True
+    )
     
-    # Hacemos que el campo heredado 'partner_id' sea obligatorio para este modelo específico.
-    partner_id = fields.Many2one(required=True)
+    # Hacemos que el campo heredado 'partner_id' sea obligatorio y aplicamos la seguridad
+    partner_id = fields.Many2one(required=True, states=READONLY_STATES)
 
     category_id = fields.Many2one(
         'asset.category', 
         string='Categoría de Activo', 
         required=True,
+        states=READONLY_STATES,
         domain="[('company_id', '=', company_id)]"
     )
     asset_account_id = fields.Many2one('account.account', string='Cuenta de Activo', related='category_id.asset_account_id', store=True, readonly=True)
@@ -26,20 +38,23 @@ class AssetPurchaseAssistant(models.Model):
     is_pending_payment = fields.Boolean(
         string='Pendiente de Pago',
         default=True,
+        states=READONLY_STATES,
         help="Marque esta casilla si la compra del activo genera una cuenta por pagar. Desmárquela si fue un pago directo."
     )
     due_date = fields.Date(
         string='Fecha de Vencimiento',
-        states={'posted': [('readonly', True)], 'cancelled': [('readonly', True)]}
+        states=READONLY_STATES
     )
     payable_account_id = fields.Many2one(
         'account.account', 
         string='Cuenta por Pagar',
+        states=READONLY_STATES,
         domain="[('deprecated', '=', False), ('company_id', '=', company_id)]"
     )
     payment_journal_id = fields.Many2one(
         'account.journal', 
         string='Diario de Pago (Empresa)', 
+        states=READONLY_STATES,
         domain="[('type', 'in', ('bank', 'cash')), ('company_id', '=', company_id)]",
         help="Diario de la empresa utilizado para realizar el pago directo del activo."
     )
@@ -79,7 +94,6 @@ class AssetPurchaseAssistant(models.Model):
             'account_id': self.asset_account_id.id,
             'debit': self.amount,
             'credit': 0.0,
-            # CORRECCIÓN: Se reemplaza 'supplier_id' por 'partner_id'
             'partner_id': self.partner_id.id,
         })
         
@@ -90,7 +104,6 @@ class AssetPurchaseAssistant(models.Model):
             'account_id': credit_account_id,
             'debit': 0.0,
             'credit': self.amount,
-            # CORRECCIÓN: Se reemplaza 'supplier_id' por 'partner_id'
             'partner_id': self.partner_id.id,
         })
 

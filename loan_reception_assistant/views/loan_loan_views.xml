@@ -69,9 +69,4 @@
         <field name="view_mode">tree,form</field>
     </record>
 
-    <menuitem id="menu_loan_loan"
-              name="Préstamos"
-              parent="expense_assistant.menu_expense_assistant_config"
-              action="action_loan_loan"
-              sequence="30"/>
-</odoo>
+    </odoo>

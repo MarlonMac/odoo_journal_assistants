@@ -31,7 +31,8 @@
                         </button>
                     </div>
                     <div class="oe_title">
-                        <h1><field name="name"/></h1>
+                        <label for="name" class="oe_edit_only"/>
+                        <h1><field name="name" placeholder="Ej: Préstamo Bancario #12345"/></h1>
                     </div>
                     <group>
                         <group>
@@ -51,14 +52,18 @@
     </record>
     
     <record id="action_loan_loan" model="ir.actions.act_window">
-        <field name="name">Préstamos</field>
+        <field name="name">Contratos de Préstamo</field>
         <field name="res_model">loan.loan</field>
         <field name="view_mode">tree,form</field>
     </record>
 
-    <menuitem id="menu_loan_loan"
-              name="Préstamos"
-              parent="expense_assistant.menu_expense_assistant_config"
+    <menuitem id="menu_loan_category"
+              name="Gestión de Préstamos"
+              parent="expense_assistant.menu_expense_assistant_root"
+              sequence="30"/> 
+              <menuitem id="menu_loan_loan"
+              name="Contratos (Hub)"
+              parent="menu_loan_category"
               action="action_loan_loan"
-              sequence="30"/>
+              sequence="1"/>
 </odoo>

@@ -11,7 +11,7 @@
     'author': 'Marlon Macario',
     'category': 'Accounting/Accounting',
     'depends': [
-        'journal_entry_assistant_base',
+        'journal_entry_assistant_base', 'expense_assistant',
     ],
     'data': [
         'security/ir.model.access.csv',

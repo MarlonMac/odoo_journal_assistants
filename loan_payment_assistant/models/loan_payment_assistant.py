@@ -7,19 +7,39 @@ class LoanPaymentAssistant(models.Model):
     _inherit = 'assistant.journal.entry.base'
     _description = 'Asistente de Pago de Préstamos'
 
+    # Seguridad: Solo editable en borrador
+    READONLY_STATES = {
+        'to_approve': [('readonly', True)], 
+        'approved': [('readonly', True)], 
+        'posted': [('readonly', True)], 
+        'cancelled': [('readonly', True)]
+    }
+
     # Campos específicos
     loan_id = fields.Many2one(
         'loan.loan', 
         string='Préstamo a Pagar', 
         required=True,
+        states=READONLY_STATES,
         domain="[('company_id', '=', company_id)]"
     )
-    principal_amount = fields.Float(string='Monto de Capital', required=True, tracking=True)
-    interest_amount = fields.Float(string='Monto de Intereses', required=True, tracking=True)
+    principal_amount = fields.Float(
+        string='Monto de Capital', 
+        required=True, 
+        states=READONLY_STATES,
+        tracking=True
+    )
+    interest_amount = fields.Float(
+        string='Monto de Intereses', 
+        required=True, 
+        states=READONLY_STATES,
+        tracking=True
+    )
     payment_journal_id = fields.Many2one(
         'account.journal', 
         string='Pagado desde (Diario)', 
         required=True, 
+        states=READONLY_STATES,
         domain="[('type', 'in', ('bank', 'cash')), ('company_id', '=', company_id)]"
     )
     
@@ -27,8 +47,12 @@ class LoanPaymentAssistant(models.Model):
     amount = fields.Float(string='Monto Total Pagado', compute='_compute_amount', store=True, readonly=True)
 
     # --- CAMPOS PARA COMPROBANTE ---
-    attachment = fields.Binary(string="Comprobante de Pago", help="Adjunte el comprobante de la transferencia o depósito.")
-    attachment_filename = fields.Char(string="Nombre del Comprobante")
+    attachment = fields.Binary(
+        string="Comprobante de Pago", 
+        states=READONLY_STATES,
+        help="Adjunte el comprobante de la transferencia o depósito."
+    )
+    attachment_filename = fields.Char(string="Nombre del Comprobante", states=READONLY_STATES)
 
     @api.depends('principal_amount', 'interest_amount')
     def _compute_amount(self):

@@ -10,6 +10,16 @@ class AssistantJournalEntryBase(models.AbstractModel):
     _description = 'Asistente de Asientos de Diario (Base)'
     _order = 'date desc, id desc'
     _inherit = ['mail.thread', 'mail.activity.mixin']
+
+    # Definimos el patrón de bloqueo de seguridad
+    # Los campos serán de solo lectura en cualquier estado que no sea 'draft'
+    READONLY_STATES = {
+        'to_approve': [('readonly', True)], 
+        'approved': [('readonly', True)], 
+        'posted': [('readonly', True)], 
+        'cancelled': [('readonly', True)]
+    }
+
     # --- CAMPO DE ESTADO ---
     state = fields.Selection([
         ('draft', 'Borrador'),
@@ -21,13 +31,38 @@ class AssistantJournalEntryBase(models.AbstractModel):
 
     # --- CAMPOS COMUNES ---
     name = fields.Char(string='Referencia', required=True, copy=False, readonly=True, default=lambda self: _('Nuevo'))
-    description = fields.Char(string='Descripción', required=True, states={'posted': [('readonly', True)], 'cancelled': [('readonly', True)]}, tracking=True)
-    date = fields.Date(string='Fecha Contable', required=True, default=fields.Date.context_today, states={'posted': [('readonly', True)], 'cancelled': [('readonly', True)]}, tracking=True)
+    
+    description = fields.Char(
+        string='Descripción', 
+        required=True, 
+        states=READONLY_STATES, 
+        tracking=True
+    )
+    
+    date = fields.Date(
+        string='Fecha Contable', 
+        required=True, 
+        default=fields.Date.context_today, 
+        states=READONLY_STATES, 
+        tracking=True
+    )
+    
     move_id = fields.Many2one('account.move', string='Asiento Contable', readonly=True, copy=False)
-    company_id = fields.Many2one('res.company', string='Compañía', required=True, default=lambda self: self.env.company)
+    
+    company_id = fields.Many2one(
+        'res.company', 
+        string='Compañía', 
+        required=True, 
+        default=lambda self: self.env.company,
+        states=READONLY_STATES
+    )
 
-    # --- MODIFICACIÓN: AÑADIDOS CAMPOS FALTANTES DE SOLICITUDES ANTERIORES ---
-    partner_id = fields.Many2one('res.partner', string='Contacto')
+    partner_id = fields.Many2one(
+        'res.partner', 
+        string='Contacto',
+        states=READONLY_STATES
+    )
+    
     partner_bank_ids = fields.One2many(related='partner_id.bank_ids', string="Cuentas Bancarias del Contacto")
 
     # --- CAMPOS DE PAGO ---
@@ -46,9 +81,7 @@ class AssistantJournalEntryBase(models.AbstractModel):
     # === FIX PARA MOSTRAR SALDOS EN LA VISTA SIN ALMACENARLOS ===
     amount_paid = fields.Monetary(string='Monto Pagado', compute='_compute_payment_amounts', store=False)
     amount_due = fields.Monetary(string='Saldo Pendiente', compute='_compute_payment_amounts', store=False)
-    # === FIN DEL FIX ===
-
-    # --- MODIFICACIÓN: AÑADIDO CAMPO DE ESTADO DE PAGO DE SOLICITUD ANTERIOR ---
+    
     payment_status = fields.Selection([
         ('not_payable', 'No Aplica Pago'),
         ('unpaid', 'Pendiente de Pago'),
@@ -56,7 +89,6 @@ class AssistantJournalEntryBase(models.AbstractModel):
         ('paid', 'Pagado'),
     ], string='Estado de Pago', compute='_compute_payment_status', store=True, default='not_payable')
 
-    # --- MODIFICACIÓN: AÑADIDO MÉTODO _compute_payments ---
     def _compute_payments(self):
         """ Encuentra los pagos asociados a este asistente. """
         for rec in self:
@@ -64,7 +96,6 @@ class AssistantJournalEntryBase(models.AbstractModel):
                 ('assistant_id', '=', f'{rec._name},{rec.id}')
             ])
 
-    # --- MODIFICACIÓN: AÑADIDO MÉTODO _compute_payment_status ---
     @api.depends('state', 'payment_ids.state', 'amount_due')
     def _compute_payment_status(self):
         for rec in self:
@@ -89,7 +120,6 @@ class AssistantJournalEntryBase(models.AbstractModel):
                 else:
                     rec.payment_status = 'paid'
 
-    # --- MODIFICACIÓN: 'amount' AÑADIDO A @api.depends ---
     # El 'amount' total es necesario para calcular el saldo pendiente
     @api.depends('payment_ids.state', 'amount')
     def _compute_payment_amounts(self):
@@ -109,7 +139,6 @@ class AssistantJournalEntryBase(models.AbstractModel):
             'context': {
                 'active_model': 'account.move',
                 'active_ids': self.move_id.ids,
-                # --- MODIFICACIÓN: Se pasa la referencia del asistente en el contexto ---
                 # Esto permitirá que el pago se vincule automáticamente al asistente.
                 'default_assistant_id': f'{self._name},{self.id}',
             },
@@ -152,7 +181,6 @@ class AssistantJournalEntryBase(models.AbstractModel):
             # En lugar de 'move.assistant_id = self', usamos la sintaxis 'modelo,id'
             move.assistant_id = f'{rec._name},{rec.id}'
             
-            # --- MODIFICACIÓN: Se añade recálculo de payment_status ---
             rec.write({'state': 'posted', 'move_id': move.id})
             rec.invalidate_recordset(['payment_status'])
         return True

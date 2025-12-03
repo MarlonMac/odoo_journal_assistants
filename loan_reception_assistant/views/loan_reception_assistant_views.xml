@@ -94,8 +94,8 @@
     </record>
 
     <menuitem id="menu_loan_reception_assistant"
-              name="Recepción de Préstamos"
-              parent="expense_assistant.menu_expense_assistant_root"
+              name="Registrar Desembolso"
+              parent="loan_payment_assistant.menu_loan_category"
               action="action_loan_reception_assistant"
-              sequence="21"/>
+              sequence="10"/>
 </odoo>
