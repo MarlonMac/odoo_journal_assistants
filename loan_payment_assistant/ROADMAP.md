@@ -1,18 +1,47 @@
-# Roadmap: Asistente de Pago de Préstamos
+# Roadmap: Gestión de Préstamos
 
-El desarrollo futuro de este módulo se centrará en enriquecer la gestión y el seguimiento de los préstamos.
+Este documento rastrea la evolución de la suite de gestión de préstamos (`loan_payment_assistant` y sus módulos satélite).
 
-## v1.1.0 (Planeado)
+## Historial de Versiones
 
-### Seguimiento de Saldos del Préstamo
+### v1.1.0 (Lanzamiento Actual - Completado) ✅
 
-* **Descripción:** Mejorar el modelo `loan.loan` para incluir campos de "Monto Original" y "Saldo Pendiente". Cada vez que un pago sea `Registrado` a través del asistente, el saldo pendiente del préstamo asociado se actualizará automáticamente.
-* **Beneficio:** Proporcionará una visión clara y en tiempo real del estado de cada deuda sin necesidad de generar reportes complejos, directamente desde la pantalla de configuración de préstamos.
-* **Consideraciones Técnicas:**
-  * Añadir los campos `original_amount` y `outstanding_balance` al modelo `loan.loan`.
-  * Sobrescribir el método `action_post` en el modelo `loan.payment.assistant`. Después de llamar a `super()` para ejecutar la lógica base, se obtendrá el `principal_amount` y se restará del `outstanding_balance` del `loan_id` asociado.
+Esta versión transformó los asistentes aislados en una suite integral de gestión.
 
-## Mejoras Futuras
+* **Hub Centralizado:** El modelo `loan.loan` ahora actúa como el centro de mando.
+* **Ciclo de Vida Completo:** Flujo estricto de `Borrador` > `Activo` (tras Recepción) > `Pagado`.
+* **Dashboard Kanban:** Vista de tarjetas con barras de progreso visual y alertas de vencimiento.
+* **Integridad de Datos:**
+  * Seguimiento en tiempo real del `Saldo Pendiente`.
+  * Lógica de reversión: Cancelar un pago restaura el saldo de la deuda.
+  * Protección contra borrado de préstamos con movimientos.
+* **Navegación 360°:** Botones para registrar desembolsos y pagos directamente desde el contrato.
+* **Automatización:** Transición automática a "Pagado" y gamificación (Rainbow Man).
 
-* **Tabla de Amortización:** Generar una tabla de amortización sugerida al crear un nuevo préstamo.
-* **Reportes:** Crear reportes específicos sobre los intereses pagados por período o por acreedor.
+---
+
+## v1.2.0 (Planeado) 🛠️
+
+### 1. Tabla de Amortización Teórica
+
+* **Objetivo:** Permitir proyectar los pagos futuros al momento de crear el contrato.
+* **Descripción:** Un botón "Calcular Tabla" que, basado en el monto, tasa y plazo, genere líneas informativas con las fechas y montos esperados de pago.
+* **Beneficio:** Previsión de flujo de caja y comparación entre lo "Planificado" vs lo "Real".
+
+### 2. Reporte PDF: Estado de Cuenta
+
+* **Objetivo:** Generar un documento imprimible para el acreedor o para archivo físico.
+* **Contenido:** Encabezado con datos del préstamo, resumen de saldos y una tabla detallada con el historial de desembolsos y pagos realizados.
+
+### 3. Alertas de Vencimiento Automatizadas
+
+* **Objetivo:** Notificar a los usuarios responsables cuando una cuota está por vencer.
+* **Implementación:** Acción planificada (Cron) que revise las fechas de vencimiento y envíe una actividad o correo si faltan X días.
+
+---
+
+## Ideas para el Futuro (Backlog)
+
+* **Refinanciamiento:** Un asistente para renegociar la deuda (cambiar plazos, aumentar monto) sin perder el historial contable.
+* **Provisión de Intereses:** Generación automática de asientos de "Intereses por Pagar" a fin de mes, para contabilidad devengada (accrual basis), independiente del flujo de caja del pago.
+* **Soporte Multi-moneda Avanzado:** Manejo automático de diferencias de cambio si el préstamo es en USD y se paga en Moneda Local (o viceversa).
