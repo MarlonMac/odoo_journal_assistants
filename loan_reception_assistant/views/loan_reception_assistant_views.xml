@@ -51,7 +51,9 @@
                             <field name="move_id" attrs="{'invisible': [('move_id', '=', False)]}"/>
                         </group>
                     </group>
-                    </sheet>
+                </sheet>
+                <div class="o_attachment_preview"/>
+
                 <div class="oe_chatter">
                     <field name="message_follower_ids"/>
                     <field name="activity_ids"/>
@@ -68,9 +70,5 @@
         <field name="domain">[('company_id', '=', allowed_company_ids[0])]</field>
     </record>
 
-    <menuitem id="menu_loan_reception_assistant"
-              name="Recepción de préstamos"
-              parent="loan_payment_assistant.menu_loan_category"
-              action="action_loan_reception_assistant"
-              sequence="10"/>
+    <menuitem id="menu_loan_reception_assistant" name="Recepción de préstamos" parent="loan_payment_assistant.menu_loan_category" action="action_loan_reception_assistant" sequence="10"/>
 </odoo>

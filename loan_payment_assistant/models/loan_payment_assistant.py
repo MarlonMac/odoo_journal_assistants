@@ -45,12 +45,7 @@ class LoanPaymentAssistant(models.Model):
     
     amount = fields.Float(string='Monto Total Pagado', compute='_compute_amount', store=True, readonly=True)
 
-    attachment = fields.Binary(
-        string="Comprobante de Pago", 
-        states=READONLY_STATES,
-        help="Adjunte el comprobante de la transferencia o depósito."
-    )
-    attachment_filename = fields.Char(string="Nombre del Comprobante", states=READONLY_STATES)
+    # ELIMINADO: attachment y attachment_filename (heredados del base)
 
     @api.depends('principal_amount', 'interest_amount')
     def _compute_amount(self):
@@ -80,23 +75,14 @@ class LoanPaymentAssistant(models.Model):
                     ) % (rec.date, rec.loan_id.date_start))
 
     def action_post(self):
-        # Ejecuta la lógica base para crear el asiento
-        super(LoanPaymentAssistant, self).action_post()
+        # El super() base ya maneja el guardado del attachment
+        res = super(LoanPaymentAssistant, self).action_post()
         
         # Variable para el efecto visual
         rainbow_effect = False
 
         for rec in self:
-            # Lógica de adjuntos
-            if rec.attachment and rec.move_id:
-                self.env['ir.attachment'].create({
-                    'name': rec.attachment_filename or _('Comprobante de Pago'),
-                    'type': 'binary',
-                    'datas': rec.attachment,
-                    'res_model': 'account.move',
-                    'res_id': rec.move_id.id,
-                    'mimetype': 'application/octet-stream'
-                })
+            # ELIMINADO: Lógica manual de ir.attachment.create
 
             # ACTUALIZACIÓN DE SALDO Y ESTADO
             if rec.loan_id:
@@ -126,7 +112,7 @@ class LoanPaymentAssistant(models.Model):
         if rainbow_effect:
             return rainbow_effect
         
-        return True
+        return res
 
     def action_cancel(self):
         # 1. Identificar registros confirmados antes de cancelar
@@ -166,7 +152,7 @@ class LoanPaymentAssistant(models.Model):
             raise UserError(_('Los montos de capital e interés no pueden ser negativos.'))
 
         lines = []
-        # Línea de Débito 1 (Reducción de la deuda)
+        # Línea de Débito 1 (Capital)
         lines.append((0, 0, {
             'name': f"{self.description} - Capital",
             'account_id': self.loan_id.principal_account_id.id,
@@ -175,7 +161,7 @@ class LoanPaymentAssistant(models.Model):
             'partner_id': self.loan_id.partner_id.id,
         }))
         
-        # Línea de Débito 2 (Gasto por Interés)
+        # Línea de Débito 2 (Intereses)
         if self.interest_amount > 0:
             lines.append((0, 0, {
                 'name': f"{self.description} - Intereses",
@@ -185,7 +171,7 @@ class LoanPaymentAssistant(models.Model):
                 'partner_id': self.loan_id.partner_id.id,
             }))
 
-        # Línea de Crédito (Salida de Banco/Caja)
+        # Línea de Crédito (Banco)
         lines.append((0, 0, {
             'name': self.description,
             'account_id': self.payment_journal_id.default_account_id.id,

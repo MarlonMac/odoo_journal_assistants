@@ -89,6 +89,15 @@ class AssistantJournalEntryBase(models.AbstractModel):
         ('paid', 'Pagado'),
     ], string='Estado de Pago', compute='_compute_payment_status', store=True, default='not_payable')
 
+    # --- NUEVOS CAMPOS CENTRALIZADOS DE ADJUNTO ---
+    attachment = fields.Binary(
+        string="Documento de Respaldo", 
+        states=READONLY_STATES,
+        attachment=True,
+        help="Adjunte aquí el comprobante (PDF o Imagen) para visualizarlo en el formulario."
+    )
+    attachment_filename = fields.Char(string="Nombre del Archivo", states=READONLY_STATES)
+
     def _compute_payments(self):
         """ Encuentra los pagos asociados a este asistente. """
         for rec in self:
@@ -166,24 +175,42 @@ class AssistantJournalEntryBase(models.AbstractModel):
         self.write({'state': 'draft'})
 
     def action_post(self):
-        # --- MODIFICACIÓN: Iterar con 'for rec in self' ---
-        # (Tu código original usaba self.ensure_one(), pero iterar es más seguro)
-        for rec in self: 
-            # === APROBACIÓN: Ahora solo se postea desde Aprobado ===
-            if rec.state != 'approved':
-                raise UserError(_('Solo se pueden registrar documentos en estado Aprobado.'))
+            for rec in self: 
+                if rec.state != 'approved':
+                    raise UserError(_('Solo se pueden registrar documentos en estado Aprobado.'))
 
-            move_vals = rec._prepare_move_vals()
-            move = self.env['account.move'].create(move_vals)
-            move.action_post()
-            
-            # --- MODIFICACIÓN: Asignación correcta al campo Reference ---
-            # En lugar de 'move.assistant_id = self', usamos la sintaxis 'modelo,id'
-            move.assistant_id = f'{rec._name},{rec.id}'
-            
-            rec.write({'state': 'posted', 'move_id': move.id})
-            rec.invalidate_recordset(['payment_status'])
-        return True
+                move_vals = rec._prepare_move_vals()
+                move = self.env['account.move'].create(move_vals)
+                move.action_post()
+                move.assistant_id = f'{rec._name},{rec.id}'
+                
+                if rec.attachment:
+                    domain = [
+                        ('res_model', '=', rec._name),
+                        ('res_id', '=', rec.id),
+                        ('res_field', '=', 'attachment') 
+                    ]
+                    existing_attachment = self.env['ir.attachment'].search(domain, limit=1)
+                    
+                    if existing_attachment:
+                        existing_attachment.copy({
+                            'res_model': 'account.move',
+                            'res_id': move.id,
+                            'res_field': False, 
+                        })
+                    elif not existing_attachment:
+                        self.env['ir.attachment'].create({
+                            'name': rec.attachment_filename or rec.name,
+                            'type': 'binary',
+                            'datas': rec.attachment,
+                            'res_model': 'account.move',
+                            'res_id': move.id,
+                            'mimetype': 'application/pdf' if rec.attachment_filename and rec.attachment_filename.endswith('.pdf') else 'application/octet-stream'
+                        })
+                
+                rec.write({'state': 'posted', 'move_id': move.id})
+                rec.invalidate_recordset(['payment_status'])
+            return True
 
     def action_cancel(self):
         for rec in self:

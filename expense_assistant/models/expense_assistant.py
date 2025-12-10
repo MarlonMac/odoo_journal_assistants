@@ -85,7 +85,6 @@ class ExpenseAssistant(models.Model):
         states=READONLY_STATES
     )
     
-    # --- NUEVOS CAMPOS: DOCUMENTOS DE SOPORTE ---
     document_type = fields.Selection([
         ('invoice', 'Factura'),
         ('receipt', 'Recibo/Comprobante'),
@@ -101,15 +100,9 @@ class ExpenseAssistant(models.Model):
     # Campo para Recibos
     document_number = fields.Char(string='Número de Documento', tracking=True, states=READONLY_STATES)
 
-    # Campos para comprobante en pagos directos
-    attachment = fields.Binary(
-        string="Comprobante de Pago Directo", 
-        states=READONLY_STATES,
-        help="Seleccione el archivo del comprobante para pagos directos."
-    )
-    attachment_filename = fields.Char(string="Nombre del Comprobante", states=READONLY_STATES)
+    # Nota: Los campos 'attachment' y 'attachment_filename' se han eliminado de aquí
+    # porque ahora se heredan del modelo base.
 
-    # --- VALIDACIONES ---
     @api.constrains('is_reimbursement', 'reimburse_partner_id', 'payable_account_id', 'payment_journal_id')
     def _check_reimbursement_fields(self):
         for rec in self:
@@ -142,22 +135,8 @@ class ExpenseAssistant(models.Model):
                         'Para registrar un Recibo/Comprobante, el campo "Número de Documento" es obligatorio.'
                     ))
 
-    # --- LÓGICA DE ASIENTOS ---
-    def action_post(self):
-        res = super(ExpenseAssistant, self).action_post()
-        for rec in self:
-            if not rec.is_reimbursement and rec.attachment and rec.move_id:
-                self.env['ir.attachment'].create({
-                    'name': rec.attachment_filename,
-                    'type': 'binary',
-                    'datas': rec.attachment,
-                    'res_model': 'account.move',
-                    'res_id': rec.move_id.id,
-                    'mimetype': 'application/octet-stream'
-                })
-        return res
+    # Nota: Se eliminó action_post() sobrescrito porque la lógica de adjuntos ahora está en el padre.
 
-    # --- IMPLEMENTACIÓN DE MÉTODOS HEREDADOS ---
     def _get_journal(self):
         self.ensure_one()
         if self.is_reimbursement:
@@ -173,6 +152,7 @@ class ExpenseAssistant(models.Model):
         if self.amount <= 0:
             raise UserError(_('El monto del gasto debe ser positivo.'))
 
+        # Mantenemos la validación de adjunto requerido usando el campo heredado
         if not self.message_attachment_count > 0 and not self.attachment:
             raise UserError(_('¡Adjunto Requerido! Debe adjuntar un documento de respaldo, ya sea en el chatter o en el campo de comprobante.'))
 

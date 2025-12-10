@@ -41,15 +41,9 @@ class LoanReceptionAssistant(models.Model):
         related='company_id.currency_id'
     )
     
-    attachment = fields.Binary(
-        string="Comprobante", 
-        required=True, 
-        help="Seleccione el archivo del comprobante de la transacción.",
-        states={'posted': [('readonly', True)], 'cancelled': [('readonly', True)]}
-    )
-    attachment_filename = fields.Char(string="Nombre del Comprobante")
+    # ELIMINADO: attachment y attachment_filename (heredados del base)
 
-    # Campos de Input para configurar el préstamo al momento del desembolso
+    # Campos de Input para configurar el préstamo
     maturity_date = fields.Date(
         string="Fecha de Vencimiento", 
         required=True, 
@@ -63,22 +57,12 @@ class LoanReceptionAssistant(models.Model):
         states={'posted': [('readonly', True)], 'cancelled': [('readonly', True)], 'approved': [('readonly', True)]}
     )
 
-    # --- ELIMINADOS: Campos de visualización de estado y pagos (Se movieron al padre) ---
-    # loan_payment_ids, loan_outstanding_balance, loan_status_display, _compute_loan_status_display
-
     def action_post(self):
+        # El super() ya maneja el adjunto y la creación del asiento
         res = super(LoanReceptionAssistant, self).action_post()
+        
         for rec in self:
-            # Adjuntar comprobante
-            if rec.attachment and rec.move_id:
-                self.env['ir.attachment'].create({
-                    'name': rec.attachment_filename,
-                    'type': 'binary',
-                    'datas': rec.attachment,
-                    'res_model': 'account.move',
-                    'res_id': rec.move_id.id,
-                    'mimetype': 'application/octet-stream'
-                })
+            # ELIMINADO: Lógica manual de ir.attachment.create
             
             # Actualizar y Activar Préstamo
             if rec.loan_id:
