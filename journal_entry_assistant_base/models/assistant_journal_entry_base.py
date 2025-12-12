@@ -175,42 +175,49 @@ class AssistantJournalEntryBase(models.AbstractModel):
         self.write({'state': 'draft'})
 
     def action_post(self):
-            for rec in self: 
-                if rec.state != 'approved':
-                    raise UserError(_('Solo se pueden registrar documentos en estado Aprobado.'))
+        for rec in self: 
+            if rec.state != 'approved':
+                raise UserError(_('Solo se pueden registrar documentos en estado Aprobado.'))
 
-                move_vals = rec._prepare_move_vals()
-                move = self.env['account.move'].create(move_vals)
-                move.action_post()
-                move.assistant_id = f'{rec._name},{rec.id}'
+            move_vals = rec._prepare_move_vals()
+            # Creamos el asiento como el usuario actual (correcta trazabilidad)
+            move = self.env['account.move'].create(move_vals)
+            # Publicamos el asiento
+            move.action_post()
+            move.assistant_id = f'{rec._name},{rec.id}'
+            
+            # --- FIX DE SEGURIDAD PARA ADJUNTOS ---
+            if rec.attachment:
+                # Usamos sudo() para buscar el adjunto técnico origen (res_field='attachment')
+                # y para crear el adjunto destino, ya que el asiento 'posted' puede estar bloqueado.
+                domain = [
+                    ('res_model', '=', rec._name),
+                    ('res_id', '=', rec.id),
+                    ('res_field', '=', 'attachment') 
+                ]
+                existing_attachment = self.env['ir.attachment'].sudo().search(domain, limit=1)
                 
-                if rec.attachment:
-                    domain = [
-                        ('res_model', '=', rec._name),
-                        ('res_id', '=', rec.id),
-                        ('res_field', '=', 'attachment') 
-                    ]
-                    existing_attachment = self.env['ir.attachment'].search(domain, limit=1)
-                    
-                    if existing_attachment:
-                        existing_attachment.copy({
-                            'res_model': 'account.move',
-                            'res_id': move.id,
-                            'res_field': False, 
-                        })
-                    elif not existing_attachment:
-                        self.env['ir.attachment'].create({
-                            'name': rec.attachment_filename or rec.name,
-                            'type': 'binary',
-                            'datas': rec.attachment,
-                            'res_model': 'account.move',
-                            'res_id': move.id,
-                            'mimetype': 'application/pdf' if rec.attachment_filename and rec.attachment_filename.endswith('.pdf') else 'application/octet-stream'
-                        })
-                
-                rec.write({'state': 'posted', 'move_id': move.id})
-                rec.invalidate_recordset(['payment_status'])
-            return True
+                if existing_attachment:
+                    # Copiamos usando sudo() para saltar reglas de registro en 'account.move' publicados
+                    existing_attachment.sudo().copy({
+                        'res_model': 'account.move',
+                        'res_id': move.id,
+                        'res_field': False, # Lo convertimos en adjunto normal para el asiento
+                    })
+                elif not existing_attachment:
+                    # Fallback por si el binario está en memoria pero no en ir.attachment aún (raro en este flujo)
+                    self.env['ir.attachment'].sudo().create({
+                        'name': rec.attachment_filename or rec.name,
+                        'type': 'binary',
+                        'datas': rec.attachment,
+                        'res_model': 'account.move',
+                        'res_id': move.id,
+                        'mimetype': 'application/pdf' if rec.attachment_filename and rec.attachment_filename.endswith('.pdf') else 'application/octet-stream'
+                    })
+            
+            rec.write({'state': 'posted', 'move_id': move.id})
+            rec.invalidate_recordset(['payment_status'])
+        return True
 
     def action_cancel(self):
         for rec in self:
@@ -225,6 +232,7 @@ class AssistantJournalEntryBase(models.AbstractModel):
              raise UserError(_('Solo los asientos cancelados pueden volver a borrador.'))
         # Eliminamos el asiento de reversión y el original para empezar de cero
         if self.move_id:
+            # Usamos context para forzar el borrado aunque tenga enlaces
             self.move_id.line_ids.remove_move_reconcile()
             self.move_id.button_draft()
             self.move_id.with_context(force_delete=True).unlink()
