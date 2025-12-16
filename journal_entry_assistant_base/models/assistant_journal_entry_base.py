@@ -79,6 +79,7 @@ class AssistantJournalEntryBase(models.AbstractModel):
     payment_ids = fields.One2many('account.payment', compute='_compute_payments', string='Pagos')
     
     # === FIX PARA MOSTRAR SALDOS EN LA VISTA SIN ALMACENARLOS ===
+    # El 'amount' total es necesario para calcular el saldo pendiente
     amount_paid = fields.Monetary(string='Monto Pagado', compute='_compute_payment_amounts', store=False)
     amount_due = fields.Monetary(string='Saldo Pendiente', compute='_compute_payment_amounts', store=False)
     
@@ -105,11 +106,19 @@ class AssistantJournalEntryBase(models.AbstractModel):
                 ('assistant_id', '=', f'{rec._name},{rec.id}')
             ])
 
-    @api.depends('state') # Quitamos payment_ids.state
+    @api.depends('state', 'amount_due', 'payment_ids')
     def _compute_payment_status(self):
         for rec in self:
             is_payable_model = hasattr(rec, 'is_reimbursement') or hasattr(rec, 'is_pending_payment')
             is_payable_flag = False
+            
+            # Solo si el campo 'amount' está presente en el modelo hijo, 
+            # podemos calcular el estado de pago.
+            if 'amount' in rec._fields:
+                amount_total = rec.amount
+            else:
+                amount_total = 0.0
+
             if hasattr(rec, 'is_reimbursement'):
                 is_payable_flag = rec.is_reimbursement
             elif hasattr(rec, 'is_pending_payment'):
@@ -118,22 +127,34 @@ class AssistantJournalEntryBase(models.AbstractModel):
             if rec.state != 'posted':
                 rec.payment_status = 'not_payable'
             elif not is_payable_model or not is_payable_flag:
+                # 1. Si no es un modelo pagable O si la bandera es False, siempre es 'paid' (pago directo).
                 rec.payment_status = 'paid'
             else:
-                amount_total = rec.amount if hasattr(rec, 'amount') else 0
-                # Dependemos del valor calculado en _compute_payment_amounts
+                # 2. Es un modelo pagable y la bandera es True. Lógica de saldo.
+                
+                # Caso: Pendiente de Pago (Unpaid) - No hay pagos Y el saldo pendiente es el total
                 if not rec.payment_ids and rec.amount_due == amount_total:
                     rec.payment_status = 'unpaid'
-                elif rec.amount_due > 0:
+                
+                # Caso: Parcialmente Pagado (Partial) - El saldo pendiente es mayor a 0 y menor al total
+                elif rec.amount_due > 0 and rec.amount_due < amount_total:
                     rec.payment_status = 'partial'
-                else:
+                
+                # Caso: Pagado (Paid) - El único caso restante es si el saldo es 0
+                elif rec.amount_due <= 0:
                     rec.payment_status = 'paid'
+                
+                # Fallback, debería ser imposible de alcanzar con la lógica anterior.
+                else:
+                    rec.payment_status = 'unpaid'
 
     # El 'amount' total es necesario para calcular el saldo pendiente
-    @api.depends('amount') # Quitamos payment_ids.state
+    @api.depends('amount', 'payment_ids')
     def _compute_payment_amounts(self):
         for rec in self:
-            amount_total = rec.amount if hasattr(rec, 'amount') else 0
+            # CORRECCIÓN: Usar 0.0 si el campo 'amount' no existe en el modelo hijo
+            amount_total = rec.amount if 'amount' in rec._fields else 0.0
+            
             # Forzamos la lectura de los pagos en tiempo real
             paid = sum(rec.payment_ids.filtered(lambda p: p.state == 'posted').mapped('amount'))
             rec.amount_paid = paid
