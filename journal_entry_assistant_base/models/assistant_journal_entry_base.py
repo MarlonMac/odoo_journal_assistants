@@ -65,21 +65,17 @@ class AssistantJournalEntryBase(models.AbstractModel):
     
     partner_bank_ids = fields.One2many(related='partner_id.bank_ids', string="Cuentas Bancarias del Contacto")
 
-    # --- CAMPOS DE PAGO ---
-    # El currency_id se hereda de company_id para asegurar que los pagos se registren en la moneda correcta
     currency_id = fields.Many2one(
         'res.currency', 
         string='Moneda', 
         related='company_id.currency_id', 
         store=True
-    )   
+    )
 
     # --- MODIFICACIÓN: 'payment_ids' AHORA ES COMPUTADO ---
     # Debe ser computado para buscar los pagos usando la sintaxis del campo Reference.
     payment_ids = fields.One2many('account.payment', compute='_compute_payments', string='Pagos')
     
-    # === FIX PARA MOSTRAR SALDOS EN LA VISTA SIN ALMACENARLOS ===
-    # El 'amount' total es necesario para calcular el saldo pendiente
     amount_paid = fields.Monetary(string='Monto Pagado', compute='_compute_payment_amounts', store=False)
     amount_due = fields.Monetary(string='Saldo Pendiente', compute='_compute_payment_amounts', store=False)
     
@@ -90,7 +86,6 @@ class AssistantJournalEntryBase(models.AbstractModel):
         ('paid', 'Pagado'),
     ], string='Estado de Pago', compute='_compute_payment_status', store=True, default='not_payable')
 
-    # --- NUEVOS CAMPOS CENTRALIZADOS DE ADJUNTO ---
     attachment = fields.Binary(
         string="Documento de Respaldo", 
         states=READONLY_STATES,
@@ -100,9 +95,15 @@ class AssistantJournalEntryBase(models.AbstractModel):
     attachment_filename = fields.Char(string="Nombre del Archivo", states=READONLY_STATES)
 
     def _compute_payments(self):
-        """ Encuentra los pagos asociados a este asistente. """
+        """ 
+        Encuentra los pagos asociados a este asistente. 
+        FIX: Usamos sudo() porque el usuario estándar NO tiene acceso de lectura
+        a account.payment globalmente, lo que causa AccessErrors al intentar
+        calcular el estado de sus propios gastos.
+        """
+        # Usamos sudo() para buscar en account.payment saltando reglas de registro
         for rec in self:
-            rec.payment_ids = self.env['account.payment'].search([
+            rec.payment_ids = self.env['account.payment'].sudo().search([
                 ('assistant_id', '=', f'{rec._name},{rec.id}')
             ])
 
@@ -112,8 +113,6 @@ class AssistantJournalEntryBase(models.AbstractModel):
             is_payable_model = hasattr(rec, 'is_reimbursement') or hasattr(rec, 'is_pending_payment')
             is_payable_flag = False
             
-            # Solo si el campo 'amount' está presente en el modelo hijo, 
-            # podemos calcular el estado de pago.
             if 'amount' in rec._fields:
                 amount_total = rec.amount
             else:
@@ -127,36 +126,30 @@ class AssistantJournalEntryBase(models.AbstractModel):
             if rec.state != 'posted':
                 rec.payment_status = 'not_payable'
             elif not is_payable_model or not is_payable_flag:
-                # 1. Si no es un modelo pagable O si la bandera es False, siempre es 'paid' (pago directo).
                 rec.payment_status = 'paid'
             else:
-                # 2. Es un modelo pagable y la bandera es True. Lógica de saldo.
-                
-                # Caso: Pendiente de Pago (Unpaid) - No hay pagos Y el saldo pendiente es el total
+                # La lógica de comparación es segura, el riesgo estaba en acceder a payment_ids
                 if not rec.payment_ids and rec.amount_due == amount_total:
                     rec.payment_status = 'unpaid'
-                
-                # Caso: Parcialmente Pagado (Partial) - El saldo pendiente es mayor a 0 y menor al total
                 elif rec.amount_due > 0 and rec.amount_due < amount_total:
                     rec.payment_status = 'partial'
-                
-                # Caso: Pagado (Paid) - El único caso restante es si el saldo es 0
                 elif rec.amount_due <= 0:
                     rec.payment_status = 'paid'
-                
-                # Fallback, debería ser imposible de alcanzar con la lógica anterior.
                 else:
                     rec.payment_status = 'unpaid'
 
-    # El 'amount' total es necesario para calcular el saldo pendiente
     @api.depends('amount', 'payment_ids')
     def _compute_payment_amounts(self):
         for rec in self:
-            # CORRECCIÓN: Usar 0.0 si el campo 'amount' no existe en el modelo hijo
             amount_total = rec.amount if 'amount' in rec._fields else 0.0
             
-            # Forzamos la lectura de los pagos en tiempo real
-            paid = sum(rec.payment_ids.filtered(lambda p: p.state == 'posted').mapped('amount'))
+            # FIX: Usamos sudo() al iterar y filtrar payments
+            # Aunque payment_ids ya venga con sudo desde _compute_payments,
+            # aseguramos que la lectura de campos dentro del recordset (p.state, p.amount)
+            # no dispare chequeos de acceso.
+            payments = rec.payment_ids.sudo()
+            
+            paid = sum(payments.filtered(lambda p: p.state == 'posted').mapped('amount'))
             rec.amount_paid = paid
             rec.amount_due = amount_total - paid
 
@@ -168,8 +161,8 @@ class AssistantJournalEntryBase(models.AbstractModel):
             'view_mode': 'form',
             'context': {
                 'active_model': 'account.move',
-                'active_ids': self.move_id.ids,
-                # Esto permitirá que el pago se vincule automáticamente al asistente.
+                # Aquí usamos sudo() para obtener el ID del asiento si el usuario no tiene acceso a leerlo
+                'active_ids': self.move_id.sudo().ids, 
                 'default_assistant_id': f'{self._name},{self.id}',
             },
             'target': 'new',
@@ -184,7 +177,6 @@ class AssistantJournalEntryBase(models.AbstractModel):
                 vals['name'] = self.env['ir.sequence'].next_by_code(sequence_code) or _('Nuevo')
         return super(AssistantJournalEntryBase, self).create(vals_list)
 
-    # --- LÓGICA DE BOTONES (ACCIONES) ---
     def action_submit_for_approval(self):
         self.write({'state': 'to_approve'})
 
@@ -201,32 +193,27 @@ class AssistantJournalEntryBase(models.AbstractModel):
                 raise UserError(_('Solo se pueden registrar documentos en estado Aprobado.'))
 
             move_vals = rec._prepare_move_vals()
-            # Creamos el asiento como el usuario actual (correcta trazabilidad)
+            # Creamos el asiento con el usuario actual para trazabilidad correcta
             move = self.env['account.move'].create(move_vals)
-            # Publicamos el asiento
             move.action_post()
             move.assistant_id = f'{rec._name},{rec.id}'
             
-            # --- FIX DE SEGURIDAD PARA ADJUNTOS ---
             if rec.attachment:
-                # Usamos sudo() para buscar el adjunto técnico origen (res_field='attachment')
-                # y para crear el adjunto destino, ya que el asiento 'posted' puede estar bloqueado.
                 domain = [
                     ('res_model', '=', rec._name),
                     ('res_id', '=', rec.id),
                     ('res_field', '=', 'attachment') 
                 ]
+                # Sudo necesario para buscar adjuntos si hay reglas estrictas
                 existing_attachment = self.env['ir.attachment'].sudo().search(domain, limit=1)
                 
                 if existing_attachment:
-                    # Copiamos usando sudo() para saltar reglas de registro en 'account.move' publicados
                     existing_attachment.sudo().copy({
                         'res_model': 'account.move',
                         'res_id': move.id,
-                        'res_field': False, # Lo convertimos en adjunto normal para el asiento
+                        'res_field': False, 
                     })
                 elif not existing_attachment:
-                    # Fallback por si el binario está en memoria pero no en ir.attachment aún (raro en este flujo)
                     self.env['ir.attachment'].sudo().create({
                         'name': rec.attachment_filename or rec.name,
                         'type': 'binary',
@@ -243,20 +230,21 @@ class AssistantJournalEntryBase(models.AbstractModel):
     def action_cancel(self):
         for rec in self:
             if rec.move_id:
-                if rec.move_id.state == 'posted':
-                    rec.move_id._reverse_moves([{'date': fields.Date.today(), 'ref': _('Reversión de %s') % rec.name}])
-                rec.move_id.button_cancel()
+                # Sudo para reversar y cancelar si el usuario no es contador
+                move = rec.move_id.sudo()
+                if move.state == 'posted':
+                    move._reverse_moves([{'date': fields.Date.today(), 'ref': _('Reversión de %s') % rec.name}])
+                move.button_cancel()
         return self.write({'state': 'cancelled'})
 
     def action_to_draft(self):
         if any(rec.state != 'cancelled' for rec in self):
              raise UserError(_('Solo los asientos cancelados pueden volver a borrador.'))
-        # Eliminamos el asiento de reversión y el original para empezar de cero
         if self.move_id:
-            # Usamos context para forzar el borrado aunque tenga enlaces
-            self.move_id.line_ids.remove_move_reconcile()
-            self.move_id.button_draft()
-            self.move_id.with_context(force_delete=True).unlink()
+            move = self.move_id.sudo()
+            move.line_ids.remove_move_reconcile()
+            move.button_draft()
+            move.with_context(force_delete=True).unlink()
         return self.write({'state': 'draft', 'move_id': False})
 
     # --- MÉTODOS A SER IMPLEMENTADOS POR LOS HIJOS ---

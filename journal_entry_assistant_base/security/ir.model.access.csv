@@ -1,1 +1,3 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_assistant_base_user,assistant.base.user,model_assistant_journal_entry_base,group_journal_assistant_user,1,1,1,1
+access_assistant_base_approver,assistant.base.approver,model_assistant_journal_entry_base,group_journal_assistant_approver,1,1,1,1
