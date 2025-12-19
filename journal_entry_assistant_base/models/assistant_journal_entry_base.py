@@ -62,18 +62,38 @@ class AssistantJournalEntryBase(models.AbstractModel):
         string='Contacto',
         states=READONLY_STATES
     )
+
+    # --- NUEVO CAMPO PARA CORREGIR EL ERROR DE SEGURIDAD ---
+    user_id = fields.Many2one(
+        'res.users', 
+        string='Responsable', 
+        default=lambda self: self.env.user,
+        states=READONLY_STATES,
+        tracking=True,
+        index=True
+    )
     
     partner_bank_ids = fields.One2many(related='partner_id.bank_ids', string="Cuentas Bancarias del Contacto")
+
+    # --- CAMPOS MULTIMONEDA ---
+    company_currency_id = fields.Many2one(
+        'res.currency', 
+        string='Moneda de la Compañía', 
+        related='company_id.currency_id', 
+        store=True,
+        readonly=True
+    )
 
     currency_id = fields.Many2one(
         'res.currency', 
         string='Moneda', 
-        related='company_id.currency_id', 
-        store=True
+        required=True,
+        default=lambda self: self.env.company.currency_id,
+        states=READONLY_STATES,
+        tracking=True
     )
 
-    # --- MODIFICACIÓN: 'payment_ids' AHORA ES COMPUTADO ---
-    # Debe ser computado para buscar los pagos usando la sintaxis del campo Reference.
+    # --- PAGOS COMPUTADOS ---
     payment_ids = fields.One2many('account.payment', compute='_compute_payments', string='Pagos')
     
     amount_paid = fields.Monetary(string='Monto Pagado', compute='_compute_payment_amounts', store=False)
@@ -97,11 +117,7 @@ class AssistantJournalEntryBase(models.AbstractModel):
     def _compute_payments(self):
         """ 
         Encuentra los pagos asociados a este asistente. 
-        FIX: Usamos sudo() porque el usuario estándar NO tiene acceso de lectura
-        a account.payment globalmente, lo que causa AccessErrors al intentar
-        calcular el estado de sus propios gastos.
         """
-        # Usamos sudo() para buscar en account.payment saltando reglas de registro
         for rec in self:
             rec.payment_ids = self.env['account.payment'].sudo().search([
                 ('assistant_id', '=', f'{rec._name},{rec.id}')
@@ -128,12 +144,11 @@ class AssistantJournalEntryBase(models.AbstractModel):
             elif not is_payable_model or not is_payable_flag:
                 rec.payment_status = 'paid'
             else:
-                # La lógica de comparación es segura, el riesgo estaba en acceder a payment_ids
                 if not rec.payment_ids and rec.amount_due == amount_total:
                     rec.payment_status = 'unpaid'
-                elif rec.amount_due > 0 and rec.amount_due < amount_total:
+                elif rec.amount_due > 0.01 and rec.amount_due < amount_total:
                     rec.payment_status = 'partial'
-                elif rec.amount_due <= 0:
+                elif rec.amount_due <= 0.01:
                     rec.payment_status = 'paid'
                 else:
                     rec.payment_status = 'unpaid'
@@ -142,14 +157,10 @@ class AssistantJournalEntryBase(models.AbstractModel):
     def _compute_payment_amounts(self):
         for rec in self:
             amount_total = rec.amount if 'amount' in rec._fields else 0.0
-            
-            # FIX: Usamos sudo() al iterar y filtrar payments
-            # Aunque payment_ids ya venga con sudo desde _compute_payments,
-            # aseguramos que la lectura de campos dentro del recordset (p.state, p.amount)
-            # no dispare chequeos de acceso.
             payments = rec.payment_ids.sudo()
             
             paid = sum(payments.filtered(lambda p: p.state == 'posted').mapped('amount'))
+            
             rec.amount_paid = paid
             rec.amount_due = amount_total - paid
 
@@ -161,9 +172,9 @@ class AssistantJournalEntryBase(models.AbstractModel):
             'view_mode': 'form',
             'context': {
                 'active_model': 'account.move',
-                # Aquí usamos sudo() para obtener el ID del asiento si el usuario no tiene acceso a leerlo
                 'active_ids': self.move_id.sudo().ids, 
                 'default_assistant_id': f'{self._name},{self.id}',
+                'default_currency_id': self.currency_id.id,
             },
             'target': 'new',
             'type': 'ir.actions.act_window',
@@ -184,7 +195,6 @@ class AssistantJournalEntryBase(models.AbstractModel):
         self.write({'state': 'approved'})
 
     def action_reject(self):
-        # Podríamos añadir un wizard para pedir el motivo del rechazo en el futuro
         self.write({'state': 'draft'})
 
     def action_post(self):
@@ -193,7 +203,6 @@ class AssistantJournalEntryBase(models.AbstractModel):
                 raise UserError(_('Solo se pueden registrar documentos en estado Aprobado.'))
 
             move_vals = rec._prepare_move_vals()
-            # Creamos el asiento con el usuario actual para trazabilidad correcta
             move = self.env['account.move'].create(move_vals)
             move.action_post()
             move.assistant_id = f'{rec._name},{rec.id}'
@@ -204,7 +213,6 @@ class AssistantJournalEntryBase(models.AbstractModel):
                     ('res_id', '=', rec.id),
                     ('res_field', '=', 'attachment') 
                 ]
-                # Sudo necesario para buscar adjuntos si hay reglas estrictas
                 existing_attachment = self.env['ir.attachment'].sudo().search(domain, limit=1)
                 
                 if existing_attachment:
@@ -230,7 +238,6 @@ class AssistantJournalEntryBase(models.AbstractModel):
     def action_cancel(self):
         for rec in self:
             if rec.move_id:
-                # Sudo para reversar y cancelar si el usuario no es contador
                 move = rec.move_id.sudo()
                 if move.state == 'posted':
                     move._reverse_moves([{'date': fields.Date.today(), 'ref': _('Reversión de %s') % rec.name}])
@@ -247,7 +254,6 @@ class AssistantJournalEntryBase(models.AbstractModel):
             move.with_context(force_delete=True).unlink()
         return self.write({'state': 'draft', 'move_id': False})
 
-    # --- MÉTODOS A SER IMPLEMENTADOS POR LOS HIJOS ---
     def _prepare_move_vals(self):
         """
         Este método debe ser implementado por cada módulo asistente.
@@ -260,6 +266,7 @@ class AssistantJournalEntryBase(models.AbstractModel):
             'ref': self.description,
             'line_ids': self._prepare_move_lines(),
             'move_type': 'entry',
+            'currency_id': self.currency_id.id,
         }
 
     def _prepare_move_lines(self):

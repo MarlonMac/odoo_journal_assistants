@@ -34,7 +34,12 @@
                         <group>
                             <field name="description"/>
                             <field name="partner_id" string="Proveedor/Contacto Original"/>
-                            <field name="amount"/>
+                            <label for="amount"/>
+                            <div class="o_row" name="amount_div">
+                                <field name="amount"/>
+                                <field name="currency_id" options="{'no_create': True, 'no_open': True}"/>
+                            </div>
+                            <field name="company_currency_id" invisible="1"/>
                             <field name="responsible_employee_ids" widget="many2many_tags"/>
                         </group>
                         <group>
@@ -102,6 +107,7 @@
                                     <field name="date"/>
                                     <field name="journal_id"/>
                                     <field name="amount"/>
+                                    <field name="currency_id"/>
                                     <field name="state"/>
                                 </tree>
                             </field>
@@ -131,6 +137,7 @@
                 <field name="category_id"/>
                 <field name="partner_id"/>
                 <field name="amount" sum="Total"/>
+                <field name="currency_id" invisible="1"/>
                 <field name="payment_status" string="Estado de Pago" widget="badge"
                        decoration-success="payment_status == 'paid'"
                        decoration-warning="payment_status == 'partial'"

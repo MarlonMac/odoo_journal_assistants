@@ -7,7 +7,6 @@ class ExpenseAssistant(models.Model):
     _inherit = 'assistant.journal.entry.base'
     _description = 'Asistente de Gastos Corporativos'
 
-    # Reutilizamos el diccionario definido en el padre o lo definimos localmente para claridad
     READONLY_STATES = {
         'to_approve': [('readonly', True)], 
         'approved': [('readonly', True)], 
@@ -16,12 +15,14 @@ class ExpenseAssistant(models.Model):
     }
 
     # --- CAMPOS ESPECÍFICOS DE GASTOS ---
-    amount = fields.Float(
+    amount = fields.Monetary(
         string='Monto', 
         required=True, 
         states=READONLY_STATES, 
-        tracking=True
+        tracking=True,
+        currency_field='currency_id' # Vinculamos al currency_id del modelo base
     )
+    
     due_date = fields.Date(
         string='Fecha de Vencimiento', 
         states=READONLY_STATES, 
@@ -100,9 +101,6 @@ class ExpenseAssistant(models.Model):
     # Campo para Recibos
     document_number = fields.Char(string='Número de Documento', tracking=True, states=READONLY_STATES)
 
-    # Nota: Los campos 'attachment' y 'attachment_filename' se han eliminado de aquí
-    # porque ahora se heredan del modelo base.
-
     @api.constrains('is_reimbursement', 'reimburse_partner_id', 'payable_account_id', 'payment_journal_id')
     def _check_reimbursement_fields(self):
         for rec in self:
@@ -135,8 +133,6 @@ class ExpenseAssistant(models.Model):
                         'Para registrar un Recibo/Comprobante, el campo "Número de Documento" es obligatorio.'
                     ))
 
-    # Nota: Se eliminó action_post() sobrescrito porque la lógica de adjuntos ahora está en el padre.
-
     def _get_journal(self):
         self.ensure_one()
         if self.is_reimbursement:
@@ -152,7 +148,6 @@ class ExpenseAssistant(models.Model):
         if self.amount <= 0:
             raise UserError(_('El monto del gasto debe ser positivo.'))
 
-        # Mantenemos la validación de adjunto requerido usando el campo heredado
         if not self.message_attachment_count > 0 and not self.attachment:
             raise UserError(_('¡Adjunto Requerido! Debe adjuntar un documento de respaldo, ya sea en el chatter o en el campo de comprobante.'))
 
@@ -164,14 +159,42 @@ class ExpenseAssistant(models.Model):
         
         full_ref = f"{ref_prefix}{self.description}"
 
-        debit_line_vals = (0, 0, {
+        # --- LÓGICA MULTIMONEDA ---
+        company_currency = self.company_currency_id
+        transaction_currency = self.currency_id
+        
+        # Monto en la moneda de la compañía (Debe/Haber)
+        balance = transaction_currency._convert(
+            self.amount, 
+            company_currency, 
+            self.company_id, 
+            self.date or fields.Date.today()
+        )
+        
+        # Datos de moneda para el asiento (account.move.line)
+        # Si la moneda es la misma, currency_id y amount_currency pueden ir vacíos o con los valores igual.
+        # Es buena práctica enviarlos si son distintos.
+        vals_currency = {}
+        if transaction_currency != company_currency:
+            vals_currency = {
+                'currency_id': transaction_currency.id,
+            }
+        
+        # 1. Línea de Gasto (Débito)
+        debit_line_vals = {
             'name': full_ref,
             'account_id': self.expense_account_id.id,
-            'debit': self.amount,
+            'debit': balance,
             'credit': 0.0,
             'partner_id': self.partner_id.id,
-        })
+        }
+        if transaction_currency != company_currency:
+            debit_line_vals.update({
+                'currency_id': transaction_currency.id,
+                'amount_currency': self.amount, # Positivo para débito
+            })
 
+        # 2. Línea de Contrapartida (Crédito - Pasivo o Banco)
         if self.is_reimbursement:
             credit_account_id = self.payable_account_id.id
             credit_partner_id = self.reimburse_partner_id.id
@@ -179,12 +202,17 @@ class ExpenseAssistant(models.Model):
             credit_account_id = self.payment_journal_id.default_account_id.id
             credit_partner_id = self.partner_id.id
             
-        credit_line_vals = (0, 0, {
+        credit_line_vals = {
             'name': full_ref,
             'account_id': credit_account_id,
             'debit': 0.0,
-            'credit': self.amount,
+            'credit': balance,
             'partner_id': credit_partner_id,
-        })
+        }
+        if transaction_currency != company_currency:
+            credit_line_vals.update({
+                'currency_id': transaction_currency.id,
+                'amount_currency': -self.amount, # Negativo para crédito
+            })
 
-        return [debit_line_vals, credit_line_vals]
+        return [(0, 0, debit_line_vals), (0, 0, credit_line_vals)]
