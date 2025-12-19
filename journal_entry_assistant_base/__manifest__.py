@@ -17,6 +17,7 @@
         'security/journal_entry_assistant_base_security.xml',
         'security/ir.model.access.csv',
         'data/sequence_data.xml',
+        'views/account_payment_views.xml',
     ],
     'installable': True,
     'application': False,
