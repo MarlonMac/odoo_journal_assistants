@@ -31,7 +31,6 @@
                             <field name="date"/>
                             
                             <field name="maturity_date" attrs="{'readonly': [('state', '=', 'posted')]}"/>
-                            <field name="payment_term_id" attrs="{'readonly': [('state', '=', 'posted')]}"/>
                             <field name="description" placeholder="Ej: Recepción Préstamo Vehículo"/>
                             <field name="attachment" widget="binary" filename="attachment_filename" required="1"/>
                             <field name="attachment_filename" invisible="1"/>

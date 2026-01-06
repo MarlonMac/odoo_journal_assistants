@@ -55,12 +55,7 @@ class LoanReceptionAssistant(models.Model):
         help="Fecha límite para pagar el préstamo.",
         states={'posted': [('readonly', True)], 'cancelled': [('readonly', True)], 'approved': [('readonly', True)]}
     )
-    payment_term_id = fields.Many2one(
-        'account.payment.term', 
-        string="Términos de Pago", 
-        required=True,
-        states={'posted': [('readonly', True)], 'cancelled': [('readonly', True)], 'approved': [('readonly', True)]}
-    )
+    # ELIMINADO: payment_term_id
 
     @api.onchange('loan_id')
     def _onchange_loan_id(self):
@@ -69,8 +64,7 @@ class LoanReceptionAssistant(models.Model):
             self.amount = self.loan_id.original_amount
             if self.loan_id.maturity_date:
                 self.maturity_date = self.loan_id.maturity_date
-            if self.loan_id.payment_term_id:
-                self.payment_term_id = self.loan_id.payment_term_id
+            # ELIMINADO: Carga de payment_term_id
 
     def action_post(self):
         res = super(LoanReceptionAssistant, self).action_post()
@@ -80,40 +74,26 @@ class LoanReceptionAssistant(models.Model):
                     'state': 'active',
                     'date_start': rec.date,
                     'maturity_date': rec.maturity_date,
-                    'payment_term_id': rec.payment_term_id.id,
+                    # ELIMINADO: payment_term_id
                     'outstanding_balance': rec.amount
                 })
         return res
 
-    # --- NUEVO: Lógica de reversión para devolver Préstamo a Borrador ---
     def action_cancel(self):
-        # 1. Identificar registros confirmados antes de cancelar
         posted_records = self.filtered(lambda r: r.state == 'posted')
-        
-        # 2. Llamada al super para revertir asientos contables (reverse entry)
         res = super(LoanReceptionAssistant, self).action_cancel()
         
-        # 3. Revertir estado del préstamo
         for rec in posted_records:
             if rec.loan_id:
-                # Calculamos el saldo como si no existiera esta recepción.
-                # Como la recepción SUMÓ el saldo inicial, ahora lo RESTAMOS.
                 new_balance = rec.loan_id.outstanding_balance - rec.amount
-                
                 if new_balance < 0: 
                     new_balance = 0.0
 
-                vals = {
-                    'outstanding_balance': new_balance
-                }
+                vals = {'outstanding_balance': new_balance}
 
-                # CRÍTICO: Si el saldo vuelve a cero (y no hay otros movimientos raros),
-                # devolvemos el préstamo a BORRADOR.
                 if new_balance <= 0.01:
                     vals['state'] = 'draft'
                     vals['date_start'] = False
-                    # Nota: No borramos maturity_date ni payment_term_id para no perder la config del usuario,
-                    # pero al estar en draft, ya son editables de nuevo.
                 
                 rec.loan_id.write(vals)
                 
@@ -137,18 +117,15 @@ class LoanReceptionAssistant(models.Model):
         loan_currency = self.currency_id
         date = self.date or fields.Date.today()
 
-        # 1. Calcular monto en moneda de la compañía
         amount_company_curr = loan_currency._convert(
             self.amount, company_currency, company, date
         )
 
-        # 2. Configurar Moneda para Préstamo (Pasivo)
         loan_line_currency = loan_currency.id
         loan_line_amount_currency = 0.0
         if loan_currency != company_currency:
              loan_line_amount_currency = -self.amount
 
-        # 3. Configurar Moneda para Banco
         bank_journal = self.reception_journal_id
         bank_currency = bank_journal.currency_id or company_currency
         
@@ -160,7 +137,6 @@ class LoanReceptionAssistant(models.Model):
                 amount_company_curr, bank_currency, company, date
             )
 
-        # A. Línea de Banco (Débito)
         debit_line = (0, 0, {
             'name': f"{self.description} (Recepción)",
             'account_id': self.reception_journal_id.default_account_id.id,
@@ -171,7 +147,6 @@ class LoanReceptionAssistant(models.Model):
             'partner_id': self.loan_id.partner_id.id,
         })
         
-        # B. Línea de Préstamo (Crédito)
         credit_line = (0, 0, {
             'name': f"Préstamo: {self.loan_id.name}",
             'account_id': self.loan_id.principal_account_id.id,

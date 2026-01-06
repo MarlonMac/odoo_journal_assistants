@@ -139,7 +139,6 @@
                         </group>
                         <group string="Condiciones">
                             <field name="date_start" attrs="{'readonly': [('state', '!=', 'draft')]}"/>
-                            <field name="payment_term_id" attrs="{'readonly': [('state', '!=', 'draft')]}"/>
                             <field name="maturity_date" attrs="{'readonly': [('state', '!=', 'draft')]}"/>
                         </group>
                         <group string="Configuración Contable">
