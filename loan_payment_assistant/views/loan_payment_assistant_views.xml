@@ -7,12 +7,12 @@
             <tree string="Pagos de Préstamos">
                 <field name="name"/>
                 <field name="date"/>
-                <field name="description"/>
                 <field name="loan_id"/>
                 <field name="principal_amount"/>
                 <field name="interest_amount"/>
                 <field name="amount" sum="Total Pagado"/>
-                <field name="state" widget="badge" decoration-success="state == 'posted'" decoration-info="state in ['draft', 'to_approve', 'approved']" decoration-muted="state == 'cancelled'"/>
+                <field name="currency_id" optional="show"/>
+                <field name="state" widget="badge" decoration-success="state == 'posted'"/>
             </tree>
         </field>
     </record>
@@ -40,22 +40,24 @@
                             <field name="loan_id" options="{'no_create': True, 'no_open': True}"/>
                             <field name="company_id" invisible="1"/>
                             <field name="description"/>
+                            
+                            <separator string="Montos del Pago"/>
+                            <field name="currency_id" options="{'no_create': True, 'no_open': True}" groups="base.group_multi_currency"/>
                             <field name="principal_amount"/>
                             <field name="interest_amount"/>
                         </group>
                         <group>
                             <field name="date"/>
                             <field name="payment_journal_id"/>
-                            <field name="amount"/>                            
+                            <field name="amount" widget="monetary" options="{'currency_field': 'currency_id'}" decoration-bf="1"/>                            
+                            
                             <field name="attachment" widget="binary" filename="attachment_filename"/>
                             <field name="attachment_filename" invisible="1"/>
-                            
                             <field name="move_id" attrs="{'invisible': [('move_id', '=', False)]}"/>
                         </group>
                     </group>
                 </sheet>
                 <div class="o_attachment_preview"/>
-                
                 <div class="oe_chatter">
                     <field name="message_follower_ids"/>
                     <field name="activity_ids"/>
@@ -69,8 +71,7 @@
         <field name="name">Asistente de Pago de Préstamos</field>
         <field name="res_model">loan.payment.assistant</field>
         <field name="view_mode">tree,form</field>
-        <field name="domain">[('company_id', '=', allowed_company_ids[0])]</field>        
-        <field name="help" type="html"><p class="o_view_nocontent_smiling_face">Crea un nuevo registro de pago de préstamo.</p></field>
+        <field name="domain">[('company_id', '=', allowed_company_ids[0])]</field>
     </record>
 
     <menuitem id="menu_loan_payment_assistant" name="Pagos" parent="menu_loan_category" action="action_loan_payment_assistant" sequence="20"/>

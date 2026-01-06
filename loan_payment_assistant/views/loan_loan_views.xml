@@ -12,6 +12,7 @@
                 <field name="original_amount"/>
                 <field name="outstanding_balance"/>
                 <field name="company_id" groups="base.group_multi_company"/>
+                <field name="currency_id" invisible="1"/>
                 <field name="state" widget="badge" decoration-info="state == 'draft'" decoration-success="state == 'active'" decoration-muted="state == 'paid'"/>
             </tree>
         </field>
@@ -132,6 +133,7 @@
                     <group>
                         <group string="Estado Financiero">
                             <field name="partner_id" attrs="{'readonly': [('state', '!=', 'draft')]}"/>
+                            <field name="currency_id" options="{'no_create': True, 'no_open': True}" attrs="{'readonly': [('state', '!=', 'draft')]}"/>
                             <field name="original_amount" attrs="{'readonly': [('state', '!=', 'draft')]}"/>
                             <field name="outstanding_balance" force_save="1" readonly="1" style="font-weight: bold; font-size: 1.2em; color: #d9534f;" />
                         </group>

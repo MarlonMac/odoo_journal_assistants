@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-from odoo import models, fields, api
+from odoo import models, fields, api, _
+from odoo.exceptions import UserError
 from datetime import timedelta
 
 class Loan(models.Model):
@@ -10,10 +11,11 @@ class Loan(models.Model):
     name = fields.Char(string='Nombre o Referencia del Préstamo', required=True, tracking=True)
     partner_id = fields.Many2one('res.partner', string='Acreedor', required=True, help="Entidad o persona que otorgó el préstamo.", tracking=True)
     
-    original_amount = fields.Monetary(string="Monto Original", required=True, tracking=True)
-    outstanding_balance = fields.Monetary(string="Saldo Pendiente", tracking=True)
+    # MODIFICADO: Ahora depende de la moneda seleccionada en este modelo (currency_id)
+    original_amount = fields.Monetary(string="Monto Original", required=True, tracking=True, currency_field='currency_id')
+    outstanding_balance = fields.Monetary(string="Saldo Pendiente", tracking=True, currency_field='currency_id')
     
-    # NUEVO: Campo de Progreso para el Dashboard
+    # Campo de Progreso para el Dashboard
     progress = fields.Float(string="Progreso Pagado", compute='_compute_progress', store=False)
 
     # Campos de Gestión
@@ -43,11 +45,14 @@ class Loan(models.Model):
         required=True, 
         default=lambda self: self.env.company
     )
+    
+    # MODIFICADO: Campo independiente para permitir Préstamos en USD/EUR
     currency_id = fields.Many2one(
         'res.currency', 
-        string='Moneda', 
-        related='company_id.currency_id', 
-        store=True
+        string='Moneda del Préstamo', 
+        required=True, 
+        default=lambda self: self.env.company.currency_id,
+        tracking=True
     )
     
     # Relaciones
