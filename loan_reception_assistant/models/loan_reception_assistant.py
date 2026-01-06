@@ -85,6 +85,44 @@ class LoanReceptionAssistant(models.Model):
                 })
         return res
 
+    # --- NUEVO: Lógica de reversión para devolver Préstamo a Borrador ---
+    def action_cancel(self):
+        # 1. Identificar registros confirmados antes de cancelar
+        posted_records = self.filtered(lambda r: r.state == 'posted')
+        
+        # 2. Llamada al super para revertir asientos contables (reverse entry)
+        res = super(LoanReceptionAssistant, self).action_cancel()
+        
+        # 3. Revertir estado del préstamo
+        for rec in posted_records:
+            if rec.loan_id:
+                # Calculamos el saldo como si no existiera esta recepción.
+                # Como la recepción SUMÓ el saldo inicial, ahora lo RESTAMOS.
+                new_balance = rec.loan_id.outstanding_balance - rec.amount
+                
+                if new_balance < 0: 
+                    new_balance = 0.0
+
+                vals = {
+                    'outstanding_balance': new_balance
+                }
+
+                # CRÍTICO: Si el saldo vuelve a cero (y no hay otros movimientos raros),
+                # devolvemos el préstamo a BORRADOR.
+                if new_balance <= 0.01:
+                    vals['state'] = 'draft'
+                    vals['date_start'] = False
+                    # Nota: No borramos maturity_date ni payment_term_id para no perder la config del usuario,
+                    # pero al estar en draft, ya son editables de nuevo.
+                
+                rec.loan_id.write(vals)
+                
+                rec.loan_id.message_post(body=_(
+                    "La recepción %s ha sido cancelada. El préstamo ha vuelto a estado Borrador."
+                ) % rec.name)
+        
+        return res
+
     def _get_journal(self):
         self.ensure_one()
         return self.reception_journal_id
@@ -105,7 +143,6 @@ class LoanReceptionAssistant(models.Model):
         )
 
         # 2. Configurar Moneda para Préstamo (Pasivo)
-        # CORRECCIÓN: Si es misma moneda, usamos company_currency.id, NUNCA False.
         loan_line_currency = loan_currency.id
         loan_line_amount_currency = 0.0
         if loan_currency != company_currency:
@@ -119,7 +156,6 @@ class LoanReceptionAssistant(models.Model):
         bank_line_amount_currency = 0.0
 
         if bank_currency != company_currency:
-            # Convertimos GTQ -> Moneda Banco
             bank_line_amount_currency = company_currency._convert(
                 amount_company_curr, bank_currency, company, date
             )
@@ -130,7 +166,7 @@ class LoanReceptionAssistant(models.Model):
             'account_id': self.reception_journal_id.default_account_id.id,
             'debit': amount_company_curr,
             'credit': 0.0,
-            'currency_id': bank_line_currency, # ID obligatorio
+            'currency_id': bank_line_currency,
             'amount_currency': bank_line_amount_currency,
             'partner_id': self.loan_id.partner_id.id,
         })
@@ -141,7 +177,7 @@ class LoanReceptionAssistant(models.Model):
             'account_id': self.loan_id.principal_account_id.id,
             'debit': 0.0,
             'credit': amount_company_curr,
-            'currency_id': loan_line_currency, # ID obligatorio
+            'currency_id': loan_line_currency,
             'amount_currency': loan_line_amount_currency,
             'partner_id': self.loan_id.partner_id.id,
         })
