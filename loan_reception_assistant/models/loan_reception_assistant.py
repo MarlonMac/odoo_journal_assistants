@@ -55,7 +55,6 @@ class LoanReceptionAssistant(models.Model):
         help="Fecha límite para pagar el préstamo.",
         states={'posted': [('readonly', True)], 'cancelled': [('readonly', True)], 'approved': [('readonly', True)]}
     )
-    # ELIMINADO: payment_term_id
 
     @api.onchange('loan_id')
     def _onchange_loan_id(self):
@@ -64,7 +63,6 @@ class LoanReceptionAssistant(models.Model):
             self.amount = self.loan_id.original_amount
             if self.loan_id.maturity_date:
                 self.maturity_date = self.loan_id.maturity_date
-            # ELIMINADO: Carga de payment_term_id
 
     def action_post(self):
         res = super(LoanReceptionAssistant, self).action_post()
@@ -74,7 +72,6 @@ class LoanReceptionAssistant(models.Model):
                     'state': 'active',
                     'date_start': rec.date,
                     'maturity_date': rec.maturity_date,
-                    # ELIMINADO: payment_term_id
                     'outstanding_balance': rec.amount
                 })
         return res
@@ -117,42 +114,70 @@ class LoanReceptionAssistant(models.Model):
         loan_currency = self.currency_id
         date = self.date or fields.Date.today()
 
+        # 1. Conversión a moneda base (GTQ) para el débito y crédito oficial
         amount_company_curr = loan_currency._convert(
             self.amount, company_currency, company, date
         )
 
-        loan_line_currency = loan_currency.id
-        loan_line_amount_currency = 0.0
-        if loan_currency != company_currency:
-             loan_line_amount_currency = -self.amount
+        # === LÓGICA DE MULTIMONEDA CORREGIDA ===
 
-        bank_journal = self.reception_journal_id
-        bank_currency = bank_journal.currency_id or company_currency
+        # --- A. Preparación Línea de Banco (Debe) ---
+        bank_account = self.reception_journal_id.default_account_id
+        # PRIORIDAD CRÍTICA: La moneda la dicta la CUENTA, no solo el diario.
+        bank_currency = bank_account.currency_id or self.reception_journal_id.currency_id or company_currency
         
-        bank_line_currency = bank_currency.id
+        bank_line_currency_id = False
         bank_line_amount_currency = 0.0
 
         if bank_currency != company_currency:
-            bank_line_amount_currency = company_currency._convert(
-                amount_company_curr, bank_currency, company, date
-            )
+            bank_line_currency_id = bank_currency.id
+            # Optimización: Si la cuenta de banco y el préstamo son la misma moneda (ej. USD),
+            # usamos el monto original directo para evitar errores de redondeo en conversión.
+            if bank_currency == loan_currency:
+                bank_line_amount_currency = self.amount
+            else:
+                bank_line_amount_currency = company_currency._convert(
+                    amount_company_curr, bank_currency, company, date
+                )
 
+        # --- B. Preparación Línea de Pasivo/Préstamo (Haber) ---
+        loan_account = self.loan_id.principal_account_id
+        # Misma lógica: verificar si la cuenta de pasivo tiene moneda forzada
+        liability_currency = loan_account.currency_id or loan_currency
+        
+        loan_line_currency_id = False
+        loan_line_amount_currency = 0.0
+
+        # Generalmente la cuenta de pasivo sigue la moneda del préstamo, 
+        # pero verificamos contra la moneda de la compañía por si acaso.
+        if liability_currency != company_currency:
+             loan_line_currency_id = liability_currency.id
+             # Debe ser negativo porque es crédito
+             if liability_currency == loan_currency:
+                 loan_line_amount_currency = -self.amount
+             else:
+                 # Caso raro: Préstamo en EUR, Pasivo en USD
+                 amt_converted = company_currency._convert(amount_company_curr, liability_currency, company, date)
+                 loan_line_amount_currency = -amt_converted
+
+        # --- Creación de Líneas ---
+        
         debit_line = (0, 0, {
             'name': f"{self.description} (Recepción)",
-            'account_id': self.reception_journal_id.default_account_id.id,
+            'account_id': bank_account.id,
             'debit': amount_company_curr,
             'credit': 0.0,
-            'currency_id': bank_line_currency,
+            'currency_id': bank_line_currency_id,
             'amount_currency': bank_line_amount_currency,
             'partner_id': self.loan_id.partner_id.id,
         })
         
         credit_line = (0, 0, {
             'name': f"Préstamo: {self.loan_id.name}",
-            'account_id': self.loan_id.principal_account_id.id,
+            'account_id': loan_account.id,
             'debit': 0.0,
             'credit': amount_company_curr,
-            'currency_id': loan_line_currency,
+            'currency_id': loan_line_currency_id,
             'amount_currency': loan_line_amount_currency,
             'partner_id': self.loan_id.partner_id.id,
         })

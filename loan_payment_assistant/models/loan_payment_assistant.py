@@ -171,25 +171,40 @@ class LoanPaymentAssistant(models.Model):
         interest_company = transaction_currency._convert(self.interest_amount, company_currency, company, date)
         total_company = principal_company + interest_company
 
-        # 2. Pasivo/Interés
-        # CORRECCIÓN: Siempre ID válido
-        loan_line_curr_id = loan_currency.id
+        # === CORRECCIÓN MULTIMONEDA: Validar Cuentas Específicas ===
+        
+        # 2. Configuración Pasivo/Interés (Debe)
+        loan_line_curr_id = False
         loan_line_amt_curr_principal = 0.0
         loan_line_amt_curr_interest = 0.0
+        
+        # Revisar si la cuenta de pasivo exige moneda o si estamos transando en otra moneda
+        loan_account_principal = self.loan_id.principal_account_id
+        loan_target_currency = loan_account_principal.currency_id or loan_currency
 
-        if loan_currency != company_currency:
-            loan_line_amt_curr_principal = transaction_currency._convert(self.principal_amount, loan_currency, company, date)
-            loan_line_amt_curr_interest = transaction_currency._convert(self.interest_amount, loan_currency, company, date)
+        if loan_target_currency != company_currency:
+            loan_line_curr_id = loan_target_currency.id
+            loan_line_amt_curr_principal = transaction_currency._convert(
+                self.principal_amount, loan_target_currency, company, date
+            )
+            loan_line_amt_curr_interest = transaction_currency._convert(
+                self.interest_amount, loan_target_currency, company, date
+            )
 
-        # 3. Banco
-        bank_journal_currency = self.payment_journal_id.currency_id or company_currency
-        # CORRECCIÓN: Siempre ID válido
-        bank_line_curr_id = bank_journal_currency.id
+        # 3. Configuración Banco (Haber)
+        bank_account = self.payment_journal_id.default_account_id
+        # PRIORIDAD CRÍTICA: Cuenta > Diario > Compañía
+        bank_target_currency = bank_account.currency_id or self.payment_journal_id.currency_id or company_currency
+        
+        bank_line_curr_id = False
         bank_line_amt_curr = 0.0
 
-        if bank_journal_currency != company_currency:
+        if bank_target_currency != company_currency:
+            bank_line_curr_id = bank_target_currency.id
             total_transaction = self.principal_amount + self.interest_amount
-            bank_line_amt_curr = -transaction_currency._convert(total_transaction, bank_journal_currency, company, date)
+            # Salida de dinero = Negativo
+            converted_amount = transaction_currency._convert(total_transaction, bank_target_currency, company, date)
+            bank_line_amt_curr = -converted_amount
 
         lines = []
 
@@ -199,7 +214,7 @@ class LoanPaymentAssistant(models.Model):
             'account_id': self.loan_id.principal_account_id.id,
             'debit': principal_company,
             'credit': 0.0,
-            'currency_id': loan_line_curr_id, # <-- Siempre ID
+            'currency_id': loan_line_curr_id,
             'amount_currency': loan_line_amt_curr_principal,
             'partner_id': self.loan_id.partner_id.id,
         }))
@@ -211,7 +226,7 @@ class LoanPaymentAssistant(models.Model):
                 'account_id': self.loan_id.interest_account_id.id,
                 'debit': interest_company,
                 'credit': 0.0,
-                'currency_id': loan_line_curr_id, # <-- Siempre ID
+                'currency_id': loan_line_curr_id,
                 'amount_currency': loan_line_amt_curr_interest,
                 'partner_id': self.loan_id.partner_id.id,
             }))
@@ -219,10 +234,10 @@ class LoanPaymentAssistant(models.Model):
         # C. Banco (Haber)
         lines.append((0, 0, {
             'name': self.description,
-            'account_id': self.payment_journal_id.default_account_id.id,
+            'account_id': bank_account.id,
             'debit': 0.0,
             'credit': total_company,
-            'currency_id': bank_line_curr_id, # <-- Siempre ID
+            'currency_id': bank_line_curr_id,
             'amount_currency': bank_line_amt_curr,
             'partner_id': self.loan_id.partner_id.id,
         }))

@@ -15,6 +15,7 @@ Esta versión transformó los asistentes aislados en una suite integral de gesti
   * Seguimiento en tiempo real del `Saldo Pendiente`.
   * Lógica de reversión: Cancelar un pago restaura el saldo de la deuda.
   * Protección contra borrado de préstamos con movimientos.
+  * **Soporte Multi-moneda:** Recepción estricta en moneda del contrato y Pagos flexibles en múltiples divisas con conversión automática.
 * **Navegación 360°:** Botones para registrar desembolsos y pagos directamente desde el contrato.
 * **Automatización:** Transición automática a "Pagado" y gamificación (Rainbow Man).
 
@@ -22,11 +23,13 @@ Esta versión transformó los asistentes aislados en una suite integral de gesti
 
 ## v1.2.0 (Planeado) 🛠️
 
-### 1. Tabla de Amortización Teórica
+### 1. Modelo de Plan de Pagos (Amortización)
 
-* **Objetivo:** Permitir proyectar los pagos futuros al momento de crear el contrato.
-* **Descripción:** Un botón "Calcular Tabla" que, basado en el monto, tasa y plazo, genere líneas informativas con las fechas y montos esperados de pago.
-* **Beneficio:** Previsión de flujo de caja y comparación entre lo "Planificado" vs lo "Real".
+* **Objetivo:** Flexibilidad total en la definición de cuotas, superando las limitaciones de los plazos de pago estándar.
+* **Implementación:** * Nuevo modelo vinculado al préstamo.
+  * **Botón "Crear Plan de Pagos":** Disponible cuando el préstamo está en estado `Activo`.
+  * Capacidad para generar tablas de amortización (Francés/Alemán) o definir planes de pago manuales/específicos para cada préstamo.
+* **Beneficio:** Comparación precisa entre lo planificado en el plan de pagos vs. los pagos reales ejecutados.
 
 ### 2. Reporte PDF: Estado de Cuenta
 
@@ -44,4 +47,4 @@ Esta versión transformó los asistentes aislados en una suite integral de gesti
 
 * **Refinanciamiento:** Un asistente para renegociar la deuda (cambiar plazos, aumentar monto) sin perder el historial contable.
 * **Provisión de Intereses:** Generación automática de asientos de "Intereses por Pagar" a fin de mes, para contabilidad devengada (accrual basis), independiente del flujo de caja del pago.
-* **Soporte Multi-moneda Avanzado:** Manejo automático de diferencias de cambio si el préstamo es en USD y se paga en Moneda Local (o viceversa).
+* **Dashboard Financiero:** Métricas agregadas de deuda total por acreedor, flujo de caja proyectado y costos financieros totales.
