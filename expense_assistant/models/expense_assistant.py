@@ -39,11 +39,28 @@ class ExpenseAssistant(models.Model):
         currency_field='currency_id'
     )
 
+    # --- REDECLARACIÓN PARA CORREGIR WARNINGS (SUDO Y RECURSIVIDAD) ---
+    amount_paid = fields.Monetary(
+        string='Monto Pagado', 
+        compute='_compute_payment_amounts', 
+        store=False,
+        compute_sudo=True
+    )
+    
+    amount_due = fields.Monetary(
+        string='Saldo Pendiente', 
+        compute='_compute_payment_amounts', 
+        store=False,
+        recursive=True,
+        compute_sudo=True
+    )
+
     payment_notification_sent = fields.Boolean(
         string='Notificación de Pago Enviada',
         compute='_compute_payment_amounts',
         store=True,
         copy=False,
+        compute_sudo=True,
         help="Semáforo técnico para evitar envío duplicado de notificaciones."
     )
 
@@ -101,7 +118,6 @@ class ExpenseAssistant(models.Model):
 
     @api.onchange('amount')
     def _onchange_amount(self):
-        """ Si el usuario solo ingresa el Gasto Real, asumimos que el Total del Documento es el mismo """
         if self.amount > 0 and self.document_total == 0:
             self.document_total = self.amount + self.absorbed_total
 
@@ -115,7 +131,6 @@ class ExpenseAssistant(models.Model):
             
             if rec.state == 'posted' and rec.move_id:
                 if rec.is_reimbursement:
-                    # Lógica de Cuenta por Pagar (Reembolso)
                     total_liability = rec.amount + rec.absorbed_total
                     payable_lines = rec.move_id.line_ids.filtered(
                         lambda l: l.account_id == rec.payable_account_id and l.credit > 0
@@ -128,12 +143,10 @@ class ExpenseAssistant(models.Model):
                         rec.amount_due = due
                         rec.amount_paid = total_liability - due
 
-                    # Solo notificamos si es una Cuenta por Pagar que llegó a 0
                     if rec.amount_due <= 0 and rec.amount_paid > 0 and not current_notification_status:
                         rec.payment_notification_sent = True
                         rec._send_paid_notification()
                 else:
-                    # Lógica de Pago Directo (Caja/Banco). No hay deuda.
                     rec.amount_due = 0.0
                     rec.amount_paid = rec.amount
 
@@ -150,7 +163,6 @@ class ExpenseAssistant(models.Model):
                     else:
                         rec.payment_status = 'unpaid'
                 else:
-                    # Los pagos directos siempre están pagados
                     rec.payment_status = 'paid'
 
     def _send_paid_notification(self):
@@ -272,7 +284,6 @@ class ExpenseAssistant(models.Model):
         return lines
 
     def action_post(self):
-        # 🛡️ Salvavidas: Arreglar registros donde el usuario dejó el Total Documento en 0
         for rec in self:
             if rec.document_total == 0 and rec.amount > 0:
                 rec.document_total = rec.amount + rec.absorbed_total
