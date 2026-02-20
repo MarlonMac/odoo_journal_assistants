@@ -34,7 +34,8 @@
                         <group>
                             <field name="description"/>
                             <field name="partner_id" string="Proveedor/Contacto Original"/>
-                            <label for="amount"/>
+                            <field name="document_total" attrs="{'invisible': [('is_reimbursement', '=', False)]}"/>
+                            <label for="amount" string="Gasto Nuevo a Contabilizar"/>
                             <div class="o_row" name="amount_div">
                                 <field name="amount"/>
                                 <field name="currency_id" options="{'no_create': True, 'no_open': True}"/>
@@ -66,7 +67,7 @@
                             <field name="document_number" attrs="{'invisible': [('document_type', '!=', 'receipt')], 'required': [('document_type', '=', 'receipt')]}"/>
                             
                             <div class="text-muted" attrs="{'invisible': [('document_type', '!=', 'forecast')]}" colspan="2">
-                                <i class="fa fa-info-circle"/> Este gasto está en estado previsto. Debe seleccionar Factura o Recibo e ingresar los datos antes de enviar a aprobación.
+                                <i class="fa fa-info-circle"/> Este gasto está en estado previsto. Debe seleccionar Factura o Recibo e ingresar los datos.
                             </div>
                         </group>
                     </group>
@@ -100,6 +101,25 @@
                                     <field name="acc_number"/>
                                 </tree>
                             </field>
+                        </page>
+                        <page string="Saldos Absorbidos" name="absorbed" attrs="{'invisible': [('is_reimbursement', '=', False)]}">
+                            <field name="absorbed_expense_ids" 
+                                   widget="many2many" 
+                                   options="{'no_create': True}">
+                                <tree>
+                                    <field name="name"/>
+                                    <field name="date"/>
+                                    <field name="amount" string="Gasto Registrado"/>
+                                    <field name="amount_due" string="Saldo Pendiente"/>
+                                    <field name="payment_status" widget="badge" decoration-warning="payment_status == 'unpaid'"/>
+                                </tree>
+                            </field>
+                            <group class="oe_subtotal_footer oe_right">
+                                <field name="absorbed_total" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                            </group>
+                            <div class="text-muted mt16">
+                                <i class="fa fa-info-circle"/> Al aprobar este documento, los saldos seleccionados aquí se conciliarán y marcarán como pagados automáticamente.
+                            </div>
                         </page>
                         <page string="Pagos" name="payments" attrs="{'invisible': [('is_reimbursement', '=', False)]}">
                             <field name="payment_ids" readonly="1">
@@ -137,6 +157,8 @@
                 <field name="category_id"/>
                 <field name="partner_id"/>
                 <field name="amount" sum="Total"/>
+                <field name="document_total" sum="Total Documento"/>
+                <field name="amount_due" sum="Saldo Pendiente"/>
                 <field name="currency_id" invisible="1"/>
                 <field name="payment_status" string="Estado de Pago" widget="badge"
                        decoration-success="payment_status == 'paid'"
@@ -159,23 +181,17 @@
                 <field name="dte_series" string="Serie DTE"/>
                 <field name="dte_authorization" string="Autorización DTE"/>
                 <field name="document_number" string="Número de Documento"/>
-
                 <separator/>
-
                 <filter string="Mis Gastos" name="my_expenses" domain="[('create_uid', '=', uid)]"/>
                 <filter string="Borrador" name="draft" domain="[('state', '=', 'draft')]"/>
                 <filter string="Para Aprobar" name="to_approve" domain="[('state', '=', 'to_approve')]"/>
                 <separator/>
                 <filter string="Facturas" name="invoices" domain="[('document_type', '=', 'invoice')]"/>
                 <filter string="Recibos" name="receipts" domain="[('document_type', '=', 'receipt')]"/>
-
                 <group expand="0" string="Agrupar Por">
                     <filter string="Categoría" name="group_category" domain="[]" context="{'group_by': 'category_id'}"/>
                     <filter string="Proveedor/Contacto" name="group_partner" domain="[]" context="{'group_by': 'partner_id'}"/>
                     <filter string="Empleado Responsable" name="group_employee" domain="[]" context="{'group_by': 'responsible_employee_ids'}"/>
-                    <filter string="Método de Pago Original" name="group_payment_method" domain="[]" context="{'group_by': 'payment_method'}"/>
-                    <filter string="Diario de Pago" name="group_payment_journal" domain="[]" context="{'group_by': 'payment_journal_id'}"/>
-                    <separator/>
                     <filter string="Estado" name="group_state" domain="[]" context="{'group_by': 'state'}"/>
                     <filter string="Mes" name="group_date" domain="[]" context="{'group_by': 'date:month'}"/>
                 </group>
