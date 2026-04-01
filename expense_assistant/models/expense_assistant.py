@@ -14,7 +14,6 @@ class ExpenseAssistant(models.Model):
         'cancelled': [('readonly', True)]
     }
 
-    # --- CAMPOS PARA ABSORCIÓN DE SALDOS ---
     document_total = fields.Monetary(
         string='Total del Documento Físico',
         states=READONLY_STATES,
@@ -28,18 +27,28 @@ class ExpenseAssistant(models.Model):
         'expense_id',
         'absorbed_id',
         string='Saldos Anteriores a Absorber',
-        domain="[('partner_id', '=', partner_id), ('state', '=', 'posted'), ('payment_status', 'in', ['unpaid', 'partial']), ('id', '!=', id), ('is_reimbursement', '=', True)]",
+        domain="[('partner_id', '=', partner_id), ('payable_account_id', '=', payable_account_id), ('state', '=', 'posted'), ('payment_status', 'in', ['unpaid', 'partial']), ('id', '!=', id), ('is_reimbursement', '=', True)]",
         states=READONLY_STATES,
-        help="Seleccione facturas/gastos anteriores que vienen cobrados y serán cancelados por este nuevo documento."
+        help="Seleccione facturas anteriores que serán canceladas. (Debe coincidir el Proveedor y la Cuenta por Pagar)."
     )
+
+    @api.constrains('payable_account_id', 'absorbed_expense_ids')
+    def _check_absorbed_accounts(self):
+        for rec in self:
+            for absorbed in rec.absorbed_expense_ids:
+                if absorbed.payable_account_id != rec.payable_account_id:
+                    raise ValidationError(_('Error: La factura absorbida %s está en una Cuenta por Pagar diferente. Deben usar la misma cuenta para poder absorberse.') % absorbed.name)
     
+    # 🛡️ FIX: Anclado a BD, recursivo, sudo.
     absorbed_total = fields.Monetary(
         string='Total Absorbido',
         compute='_compute_absorbed_total',
+        store=True,
+        compute_sudo=True,
+        recursive=True,
         currency_field='currency_id'
     )
 
-    # --- REDECLARACIÓN PARA CORREGIR WARNINGS (SUDO Y RECURSIVIDAD) ---
     amount_paid = fields.Monetary(
         string='Monto Pagado', 
         compute='_compute_payment_amounts', 
@@ -64,7 +73,6 @@ class ExpenseAssistant(models.Model):
         help="Semáforo técnico para evitar envío duplicado de notificaciones."
     )
 
-    # --- CAMPOS ESPECÍFICOS DE GASTOS (Originales) ---
     amount = fields.Monetary(
         string='Gasto Real del Periodo', 
         required=True, 
@@ -105,12 +113,26 @@ class ExpenseAssistant(models.Model):
         ('paid', 'Pagado'),
     ], string='Estado de Pago', compute='_compute_payment_status', store=True, default='not_payable')
 
-    @api.depends('absorbed_expense_ids.amount_due')
+    # 🛡️ FIX LÓGICO: Leemos el asiento real si está publicado
+    @api.depends('absorbed_expense_ids', 'absorbed_expense_ids.amount_due', 'state', 'move_id.line_ids')
     def _compute_absorbed_total(self):
         for rec in self:
-            rec.absorbed_total = sum(rec.absorbed_expense_ids.mapped('amount_due'))
+            if rec.state == 'posted' and rec.move_id and rec.is_reimbursement:
+                # Buscamos la línea de débito a la cuenta por pagar que nosotros mismos creamos
+                absorb_lines = rec.move_id.line_ids.filtered(
+                    lambda l: l.account_id == rec.payable_account_id and l.debit > 0
+                )
+                if absorb_lines:
+                    if rec.currency_id != rec.company_currency_id:
+                        rec.absorbed_total = sum(absorb_lines.mapped('amount_currency'))
+                    else:
+                        rec.absorbed_total = sum(absorb_lines.mapped('debit'))
+                else:
+                    rec.absorbed_total = 0.0
+            else:
+                # Si está en borrador, calculamos dinámicamente como antes
+                rec.absorbed_total = sum(rec.absorbed_expense_ids.mapped('amount_due'))
 
-    # --- UX: AUTOCOMPLETADO INTELIGENTE DE MONTOS ---
     @api.onchange('document_total', 'absorbed_expense_ids')
     def _onchange_document_total(self):
         if self.document_total > 0:
@@ -121,8 +143,8 @@ class ExpenseAssistant(models.Model):
         if self.amount > 0 and self.document_total == 0:
             self.document_total = self.amount + self.absorbed_total
 
-    # --- SOBRESCRITURA DEL CÁLCULO DE PAGOS Y NOTIFICACIONES ---
-    @api.depends('amount', 'absorbed_expense_ids.amount_due', 'move_id.line_ids.amount_residual', 'move_id.line_ids.reconciled', 'is_reimbursement', 'state')
+    # 🛡️ FIX LÓGICO: Añadida la dependencia a absorbed_total
+    @api.depends('amount', 'absorbed_total', 'absorbed_expense_ids.amount_due', 'move_id.line_ids.amount_residual', 'move_id.line_ids.reconciled', 'is_reimbursement', 'state')
     def _compute_payment_amounts(self):
         super(ExpenseAssistant, self)._compute_payment_amounts()
         for rec in self:
@@ -144,8 +166,9 @@ class ExpenseAssistant(models.Model):
                         rec.amount_paid = total_liability - due
 
                     if rec.amount_due <= 0 and rec.amount_paid > 0 and not current_notification_status:
-                        rec.payment_notification_sent = True
-                        rec._send_paid_notification()
+                        if isinstance(rec.id, int) and rec.id:
+                            rec.payment_notification_sent = True
+                            rec._send_paid_notification()
                 else:
                     rec.amount_due = 0.0
                     rec.amount_paid = rec.amount
@@ -167,6 +190,9 @@ class ExpenseAssistant(models.Model):
 
     def _send_paid_notification(self):
         for rec in self:
+            if not isinstance(rec.id, int) or not rec.id:
+                continue
+
             creator = rec.create_uid.partner_id
             monto_str = f"{rec.currency_id.symbol} {rec.amount_paid}"
             
