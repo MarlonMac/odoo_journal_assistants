@@ -2,44 +2,48 @@
 from odoo import models, fields, api, _
 from odoo.exceptions import UserError, ValidationError
 
+
 class ExpenseAssistant(models.Model):
     _name = 'expense.assistant'
     _inherit = 'assistant.journal.entry.base'
     _description = 'Asistente de Gastos Corporativos'
 
     READONLY_STATES = {
-        'to_approve': [('readonly', True)], 
-        'approved': [('readonly', True)], 
-        'posted': [('readonly', True)], 
+        'to_approve': [('readonly', True)],
+        'approved': [('readonly', True)],
+        'posted': [('readonly', True)],
         'cancelled': [('readonly', True)]
     }
 
+    # --- CAMPOS PARA ABSORCIÓN DE SALDOS ---
     document_total = fields.Monetary(
         string='Total del Documento Físico',
         states=READONLY_STATES,
         tracking=True,
         help="Monto total impreso en la factura. Si incluye saldos de meses anteriores, use la pestaña de 'Saldos Absorbidos'."
     )
-    
+
     absorbed_expense_ids = fields.Many2many(
         'expense.assistant',
         'expense_assistant_absorbed_rel',
         'expense_id',
         'absorbed_id',
         string='Saldos Anteriores a Absorber',
-        domain="[('partner_id', '=', partner_id), ('payable_account_id', '=', payable_account_id), ('state', '=', 'posted'), ('payment_status', 'in', ['unpaid', 'partial']), ('id', '!=', id), ('is_reimbursement', '=', True)]",
+        domain="[('partner_id', '=', partner_id), ('state', '=', 'posted'), ('payment_status', 'in', ['unpaid', 'partial']), ('id', '!=', id), ('is_reimbursement', '=', True)]",
         states=READONLY_STATES,
-        help="Seleccione facturas anteriores que serán canceladas. (Debe coincidir el Proveedor y la Cuenta por Pagar)."
+        help="Seleccione facturas/gastos anteriores que vienen cobrados y serán cancelados por este nuevo documento."
     )
 
-    @api.constrains('payable_account_id', 'absorbed_expense_ids')
-    def _check_absorbed_accounts(self):
-        for rec in self:
-            for absorbed in rec.absorbed_expense_ids:
-                if absorbed.payable_account_id != rec.payable_account_id:
-                    raise ValidationError(_('Error: La factura absorbida %s está en una Cuenta por Pagar diferente. Deben usar la misma cuenta para poder absorberse.') % absorbed.name)
-    
-    # 🛡️ FIX: Anclado a BD, recursivo, sudo.
+    absorbed_by_ids = fields.Many2many(
+        'expense.assistant',
+        'expense_assistant_absorbed_rel',
+        'absorbed_id',
+        'expense_id',
+        string='Absorbido Por',
+        readonly=True,
+        help="Gastos más recientes que han consolidado/absorbido a esta factura."
+    )
+
     absorbed_total = fields.Monetary(
         string='Total Absorbido',
         compute='_compute_absorbed_total',
@@ -50,15 +54,15 @@ class ExpenseAssistant(models.Model):
     )
 
     amount_paid = fields.Monetary(
-        string='Monto Pagado', 
-        compute='_compute_payment_amounts', 
+        string='Monto Pagado',
+        compute='_compute_payment_amounts',
         store=False,
         compute_sudo=True
     )
-    
+
     amount_due = fields.Monetary(
-        string='Saldo Pendiente', 
-        compute='_compute_payment_amounts', 
+        string='Saldo Pendiente',
+        compute='_compute_payment_amounts',
         store=False,
         recursive=True,
         compute_sudo=True
@@ -73,55 +77,124 @@ class ExpenseAssistant(models.Model):
         help="Semáforo técnico para evitar envío duplicado de notificaciones."
     )
 
+    # --- CAMPOS ESPECÍFICOS DE GASTOS (Originales) ---
     amount = fields.Monetary(
-        string='Gasto Real del Periodo', 
-        required=True, 
-        states=READONLY_STATES, 
+        string='Gasto Real del Periodo',
+        required=True,
+        states=READONLY_STATES,
         tracking=True,
         currency_field='currency_id'
     )
-    due_date = fields.Date(string='Fecha de Vencimiento', states=READONLY_STATES)
+    due_date = fields.Date(
+        string='Fecha de Vencimiento',
+        states=READONLY_STATES
+    )
     payment_method = fields.Selection(
-        [('cash', 'Efectivo'), ('credit_card', 'Tarjeta de Crédito'), ('debit_card', 'Tarjeta de Débito'), ('transfer', 'Transferencia'), ('other', 'Otro')], 
-        string='Método de Pago Original', tracking=True, states=READONLY_STATES
+        [('cash', 'Efectivo'),
+            ('credit_card', 'Tarjeta de Crédito'),
+            ('debit_card', 'Tarjeta de Débito'),
+            ('transfer', 'Transferencia'),
+            ('other', 'Otro')],
+        string='Método de Pago Original',
+        tracking=True,
+        states=READONLY_STATES
     )
-    is_reimbursement = fields.Boolean(string='Es Cuenta por Pagar / Reembolso', default=False, states=READONLY_STATES)
-    reimburse_partner_id = fields.Many2one('res.partner', string='Pagar A', states=READONLY_STATES)
+    is_reimbursement = fields.Boolean(
+        string='Es Cuenta por Pagar / Reembolso',
+        default=False,
+        states=READONLY_STATES
+    )
+    reimburse_partner_id = fields.Many2one(
+        'res.partner',
+        string='Pagar A',
+        states=READONLY_STATES
+    )
     payable_account_id = fields.Many2one(
-        'account.account', string='Cuenta por Pagar', 
-        domain="[('deprecated', '=', False), ('company_id', '=', company_id)]", states=READONLY_STATES
+        'account.account',
+        string='Cuenta por Pagar',
+        domain="[('deprecated', '=', False), ('company_id', '=', company_id)]",
+        states=READONLY_STATES
     )
-    responsible_employee_ids = fields.Many2many('hr.employee', string='Empleados Responsables', states=READONLY_STATES)
-    category_id = fields.Many2one('expense.category', string='Categoría de Gasto', required=True, states=READONLY_STATES, domain="[('company_id', '=', company_id)]")
-    expense_account_id = fields.Many2one('account.account', string='Cuenta de Gasto', related='category_id.expense_account_id', store=True, readonly=True)
-    payment_journal_id = fields.Many2one('account.journal', string='Diario de Pago', domain="[('type', 'in', ('bank', 'cash')), ('company_id', '=', company_id)]", states=READONLY_STATES)
-    partner_id = fields.Many2one('res.partner', string='Proveedor/Contacto Original', states=READONLY_STATES)
-    
+    responsible_employee_ids = fields.Many2many(
+        'hr.employee',
+        string='Empleados Responsables',
+        states=READONLY_STATES
+    )
+    category_id = fields.Many2one(
+        'expense.category',
+        string='Categoría de Gasto',
+        required=True,
+        states=READONLY_STATES,
+        domain="[('company_id', '=', company_id)]"
+    )
+    expense_account_id = fields.Many2one(
+        'account.account',
+        string='Cuenta de Gasto',
+        related='category_id.expense_account_id',
+        store=True,
+        readonly=True
+    )
+    payment_journal_id = fields.Many2one(
+        'account.journal',
+        string='Diario de Pago',
+        domain="[('type', 'in', ('bank', 'cash')), ('company_id', '=', company_id)]",
+        states=READONLY_STATES
+    )
+    partner_id = fields.Many2one(
+        'res.partner',
+        string='Proveedor/Contacto Original',
+        states=READONLY_STATES
+    )
+
     document_type = fields.Selection([
-        ('invoice', 'Factura'), ('receipt', 'Recibo/Comprobante'), ('forecast', 'Gasto Previsto (Borrador)')
-    ], string='Tipo de Documento', required=True, default='receipt', tracking=True, states=READONLY_STATES)
-    
-    dte_number = fields.Char(string='Número DTE', tracking=True, states=READONLY_STATES)
-    dte_series = fields.Char(string='Serie DTE', tracking=True, states=READONLY_STATES)
-    dte_authorization = fields.Char(string='Autorización DTE', tracking=True, states=READONLY_STATES)
-    document_number = fields.Char(string='Número de Documento', tracking=True, states=READONLY_STATES)
+        ('invoice', 'Factura'),
+        ('receipt', 'Recibo/Comprobante'),
+        ('forecast', 'Gasto Previsto (Borrador)')
+    ], string='Tipo de Documento',
+        required=True,
+        default='receipt',
+        tracking=True,
+        states=READONLY_STATES)
 
-    payment_status = fields.Selection([
-        ('not_payable', 'No Aplica Pago'),
-        ('unpaid', 'Pendiente de Pago'),
-        ('partial', 'Parcialmente Pagado'),
-        ('paid', 'Pagado'),
-    ], string='Estado de Pago', compute='_compute_payment_status', store=True, default='not_payable')
+    dte_number = fields.Char(
+        string='Número DTE',
+        tracking=True,
+        states=READONLY_STATES
+    )
+    dte_series = fields.Char(
+        string='Serie DTE',
+        tracking=True,
+        states=READONLY_STATES
+    )
+    dte_authorization = fields.Char(
+        string='Autorización DTE',
+        tracking=True,
+        states=READONLY_STATES
+    )
+    document_number = fields.Char(
+        string='Número de Documento',
+        tracking=True,
+        states=READONLY_STATES
+    )
 
-    # 🛡️ FIX LÓGICO: Leemos el asiento real si está publicado
+    payment_status = fields.Selection(
+        selection_add=[('consolidated', 'Consolidada')],
+        ondelete={'consolidated': 'set default'},
+        help="Estado de pago heredado y extendido con la opción Consolidada."
+    )
+
+    @api.constrains('payable_account_id', 'absorbed_expense_ids')
+    def _check_absorbed_accounts(self):
+        for rec in self:
+            for absorbed in rec.absorbed_expense_ids:
+                if absorbed.payable_account_id != rec.payable_account_id:
+                    raise ValidationError(_('Error: La factura absorbida %s está en una Cuenta por Pagar diferente. Deben usar la misma cuenta para poder absorberse.') % absorbed.name)
+
     @api.depends('absorbed_expense_ids', 'absorbed_expense_ids.amount_due', 'state', 'move_id.line_ids')
     def _compute_absorbed_total(self):
         for rec in self:
             if rec.state == 'posted' and rec.move_id and rec.is_reimbursement:
-                # Buscamos la línea de débito a la cuenta por pagar que nosotros mismos creamos
-                absorb_lines = rec.move_id.line_ids.filtered(
-                    lambda l: l.account_id == rec.payable_account_id and l.debit > 0
-                )
+                absorb_lines = rec.move_id.line_ids.filtered(lambda l: l.account_id == rec.payable_account_id and l.debit > 0)
                 if absorb_lines:
                     if rec.currency_id != rec.company_currency_id:
                         rec.absorbed_total = sum(absorb_lines.mapped('amount_currency'))
@@ -130,9 +203,9 @@ class ExpenseAssistant(models.Model):
                 else:
                     rec.absorbed_total = 0.0
             else:
-                # Si está en borrador, calculamos dinámicamente como antes
                 rec.absorbed_total = sum(rec.absorbed_expense_ids.mapped('amount_due'))
 
+    # --- UX: AUTOCOMPLETADO INTELIGENTE DE MONTOS ---
     @api.onchange('document_total', 'absorbed_expense_ids')
     def _onchange_document_total(self):
         if self.document_total > 0:
@@ -143,20 +216,24 @@ class ExpenseAssistant(models.Model):
         if self.amount > 0 and self.document_total == 0:
             self.document_total = self.amount + self.absorbed_total
 
-    # 🛡️ FIX LÓGICO: Añadida la dependencia a absorbed_total
-    @api.depends('amount', 'absorbed_total', 'absorbed_expense_ids.amount_due', 'move_id.line_ids.amount_residual', 'move_id.line_ids.reconciled', 'is_reimbursement', 'state')
+    # --- SOBRESCRITURA DEL CÁLCULO DE PAGOS Y NOTIFICACIONES ---
+    @api.depends('amount',
+                 'absorbed_total',
+                 'absorbed_expense_ids.amount_due',
+                 'move_id.line_ids.amount_residual',
+                 'move_id.line_ids.reconciled',
+                 'is_reimbursement',
+                 'state')
     def _compute_payment_amounts(self):
         super(ExpenseAssistant, self)._compute_payment_amounts()
         for rec in self:
             current_notification_status = rec.payment_notification_sent
             rec.payment_notification_sent = current_notification_status
-            
+
             if rec.state == 'posted' and rec.move_id:
                 if rec.is_reimbursement:
                     total_liability = rec.amount + rec.absorbed_total
-                    payable_lines = rec.move_id.line_ids.filtered(
-                        lambda l: l.account_id == rec.payable_account_id and l.credit > 0
-                    )
+                    payable_lines = rec.move_id.line_ids.filtered(lambda l: l.account_id == rec.payable_account_id and l.credit > 0)
                     if payable_lines:
                         if rec.currency_id != rec.company_currency_id:
                             due = abs(sum(payable_lines.mapped('amount_residual_currency')))
@@ -173,14 +250,25 @@ class ExpenseAssistant(models.Model):
                     rec.amount_due = 0.0
                     rec.amount_paid = rec.amount
 
-    @api.depends('state', 'amount_due', 'amount_paid', 'move_id.line_ids.amount_residual', 'move_id.line_ids.reconciled', 'is_reimbursement')
+    @api.depends('state',
+                 'amount_due',
+                 'amount_paid',
+                 'move_id.line_ids.amount_residual',
+                 'move_id.line_ids.reconciled',
+                 'is_reimbursement',
+                 'absorbed_by_ids.state')
     def _compute_payment_status(self):
         super(ExpenseAssistant, self)._compute_payment_status()
         for rec in self:
             if rec.state == 'posted' and rec.move_id:
                 if rec.is_reimbursement:
                     if rec.amount_due <= 0 and rec.amount_paid > 0:
-                        rec.payment_status = 'paid'
+                        # Revisamos si fuimos absorbidos por un registro contabilizado
+                        is_consolidated = any(absorber.state == 'posted' for absorber in rec.absorbed_by_ids)
+                        if is_consolidated:
+                            rec.payment_status = 'consolidated'
+                        else:
+                            rec.payment_status = 'paid'
                     elif rec.amount_due > 0 and rec.amount_paid > 0:
                         rec.payment_status = 'partial'
                     else:
@@ -195,13 +283,23 @@ class ExpenseAssistant(models.Model):
 
             creator = rec.create_uid.partner_id
             monto_str = f"{rec.currency_id.symbol} {rec.amount_paid}"
-            
+
+            # Verificamos la razón del saldo 0
+            is_consolidated = any(absorber.state == 'posted' for absorber in rec.absorbed_by_ids)
+
+            if is_consolidated:
+                estado_str = "Consolidado"
+                mensaje_extra = "Este gasto ha sido <b>absorbido/consolidado</b> por una factura más reciente."
+            else:
+                estado_str = "Pagado"
+                mensaje_extra = "El área encargada ha realizado el <b>pago total</b> de este gasto."
+
             body = f"""
                 <div style="margin: 0px; padding: 0px;">
                     <p style="margin: 0px; font-size: 13px;">
                         ¡Hola <a href="#" data-oe-model="res.partner" data-oe-id="{creator.id}">@{creator.name}</a>! 👋<br/><br/>
-                        Te notificamos que el área encargada ha realizado el pago total de este gasto por <b>{monto_str}</b>.<br/>
-                        El estado del registro se ha actualizado a <b>Pagado</b>. ✅
+                        {mensaje_extra} (Monto: {monto_str}).<br/>
+                        El estado del registro se ha actualizado a <b style="text-transform:uppercase;">{estado_str}</b>. ✅
                     </p>
                 </div>
             """
@@ -222,7 +320,12 @@ class ExpenseAssistant(models.Model):
                 if not rec.payment_journal_id:
                     raise ValidationError(_('Para un pago directo, debe especificar el diario de pago.'))
 
-    @api.constrains('state', 'document_type', 'dte_number', 'dte_series', 'dte_authorization', 'document_number')
+    @api.constrains('state',
+                    'document_type',
+                    'dte_number',
+                    'dte_series',
+                    'dte_authorization',
+                    'document_number')
     def _check_document_requirements(self):
         for rec in self:
             if rec.state in ['to_approve', 'approved', 'posted'] and rec.document_type == 'forecast':
@@ -295,7 +398,7 @@ class ExpenseAssistant(models.Model):
         else:
             credit_account_id = self.payment_journal_id.default_account_id.id
             credit_partner_id = self.partner_id.id
-            
+
         credit_line_vals = {
             'name': full_ref,
             'account_id': credit_account_id,
@@ -313,7 +416,7 @@ class ExpenseAssistant(models.Model):
         for rec in self:
             if rec.document_total == 0 and rec.amount > 0:
                 rec.document_total = rec.amount + rec.absorbed_total
-                
+
         res = super(ExpenseAssistant, self).action_post()
         for rec in self:
             if rec.absorbed_expense_ids and rec.move_id and rec.is_reimbursement:
@@ -328,7 +431,7 @@ class ExpenseAssistant(models.Model):
                             lines_to_reconcile |= open_credit_lines
                     if len(lines_to_reconcile) > 1:
                         lines_to_reconcile.reconcile()
-                        
+
                 rec.absorbed_expense_ids._compute_payment_amounts()
                 rec.absorbed_expense_ids._compute_payment_status()
         return res
